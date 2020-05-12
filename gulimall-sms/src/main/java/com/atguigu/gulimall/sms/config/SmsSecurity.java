@@ -1,14 +1,12 @@
-package com.atguigu.gulimall.pms.config;
+package com.atguigu.gulimall.sms.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 //@EnableWebSecurity    开启web安全检查，没有权限的操作会被403禁止
 @Configuration
-public class PmsSecurity extends WebSecurityConfigurerAdapter {
+public class SmsSecurity extends WebSecurityConfigurerAdapter {
 
 
     @Override

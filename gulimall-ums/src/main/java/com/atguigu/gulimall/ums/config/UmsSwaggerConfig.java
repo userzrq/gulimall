@@ -1,4 +1,4 @@
-package com.atguigu.gulimall.sms.config;
+package com.atguigu.gulimall.ums.config;
 
 import io.swagger.annotations.Api;
 import org.springframework.context.annotation.Bean;
@@ -13,16 +13,16 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @EnableSwagger2
 @Configuration
-public class SmsSwaggerConfig {
+public class UmsSwaggerConfig {
 
-    @Bean("优惠营销平台")
+    @Bean("用户信息系统")
     public Docket userApis(){
         return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("优惠营销平台")
+                .groupName("用户信息系统")
                 .select()
                 //含有@Api注解的方法
                 .apis(RequestHandlerSelectors.withClassAnnotation(Api.class))
-                .paths(PathSelectors.regex("/sms.*"))
+                .paths(PathSelectors.regex("/ums.*"))
                 .build()
                 .apiInfo(apiInfo())
                 .enable(true);
@@ -30,8 +30,8 @@ public class SmsSwaggerConfig {
 
     private ApiInfo apiInfo(){
         return new ApiInfoBuilder()
-                .title("谷粒商城-优惠营销平台接口文档")
-                .description("提供优惠营销平台的文档")
+                .title("谷粒商城-用户信息系统接口文档")
+                .description("提供用户信息系统的文档")
                 .termsOfServiceUrl("http://www.atguigu.com")
                 .version("1.0")
                 .build();

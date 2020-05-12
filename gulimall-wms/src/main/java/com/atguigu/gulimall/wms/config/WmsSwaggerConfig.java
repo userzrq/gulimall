@@ -1,4 +1,4 @@
-package com.atguigu.gulimall.ums.config;
+package com.atguigu.gulimall.wms.config;
 
 import io.swagger.annotations.Api;
 import org.springframework.context.annotation.Bean;
@@ -13,16 +13,16 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @EnableSwagger2
 @Configuration
-public class UmsSwaggerConfig {
+public class WmsSwaggerConfig {
 
-    @Bean("用户信息系统")
+    @Bean("库存系统")
     public Docket userApis(){
         return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("用户信息系统")
+                .groupName("库存系统")
                 .select()
                 //含有@Api注解的方法
                 .apis(RequestHandlerSelectors.withClassAnnotation(Api.class))
-                .paths(PathSelectors.regex("/ums.*"))
+                .paths(PathSelectors.regex("/wms.*"))
                 .build()
                 .apiInfo(apiInfo())
                 .enable(true);
@@ -30,8 +30,8 @@ public class UmsSwaggerConfig {
 
     private ApiInfo apiInfo(){
         return new ApiInfoBuilder()
-                .title("谷粒商城-用户信息系统接口文档")
-                .description("提供用户信息系统的文档")
+                .title("谷粒商城-库存系统接口文档")
+                .description("提供库存系统的文档")
                 .termsOfServiceUrl("http://www.atguigu.com")
                 .version("1.0")
                 .build();

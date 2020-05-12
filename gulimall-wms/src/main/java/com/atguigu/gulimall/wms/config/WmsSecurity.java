@@ -1,4 +1,4 @@
-package com.atguigu.gulimall.ums.config;
+package com.atguigu.gulimall.wms.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -6,7 +6,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 
 //@EnableWebSecurity    开启web安全检查，没有权限的操作会被403禁止
 @Configuration
-public class UmsSecurity extends WebSecurityConfigurerAdapter {
+public class WmsSecurity extends WebSecurityConfigurerAdapter {
 
 
     @Override
