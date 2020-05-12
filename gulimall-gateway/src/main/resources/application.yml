@@ -5,10 +5,30 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: world_route
+        - id: gulimall_pms_route
           uri: lb://gulimall-pms
           predicates:
             - Path=/pms/**
+
+        - id: gulimall_oms_route
+          uri: lb://gulimall-oms
+          predicates:
+            - Path=/oms/**
+
+        - id: gulimall_sms_route
+          uri: lb://gulimall-sms
+          predicates:
+            - Path=/sms/**
+            -
+        - id: gulimall_ums_route
+          uri: lb://gulimall-ums
+          predicates:
+            - Path=/ums/**
+            -
+        - id: gulimall_wms_route
+          uri: lb://gulimall-wms
+          predicates:
+            - Path=/wms/**
 
 
 
