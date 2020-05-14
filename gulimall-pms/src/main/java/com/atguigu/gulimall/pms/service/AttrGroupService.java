@@ -1,22 +1,25 @@
 package com.atguigu.gulimall.pms.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.atguigu.gulimall.pms.entity.SpuInfoEntity;
+import com.atguigu.gulimall.pms.entity.AttrGroupEntity;
 import com.atguigu.gulimall.commons.bean.PageVo;
 import com.atguigu.gulimall.commons.bean.QueryCondition;
 
+import java.util.List;
+
 
 /**
- * spu信息
+ * 属性分组
  *
  * @author userzrq
  * @email userzrq@126.com
- * @date 2020-05-11 11:31:30
+ * @date 2020-05-14 17:42:15
  */
-public interface SpuInfoService extends IService<SpuInfoEntity> {
+public interface AttrGroupService extends IService<AttrGroupEntity> {
 
     PageVo queryPage(QueryCondition params);
 
-    PageVo queryPageByCatId(QueryCondition queryCondition, Integer catId);
+
+    PageVo queryPageAttrGroupsByCatId(QueryCondition condition,Long catId);
 }
 

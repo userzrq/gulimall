@@ -5,6 +5,9 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 
+/**
+ * 分页检索对象
+ */
 @ApiModel
 @Data
 public class QueryCondition {
@@ -24,4 +27,7 @@ public class QueryCondition {
 
     @ApiModelProperty(name = "asc",value = "系统默认排序",required = false)
     private String asc = "asc";
+
+    @ApiModelProperty(name = "key",value = "检索条件",required = false)
+    private String key = " ";
 }
