@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 
  * @author userzrq
  * @email userzrq@126.com
- * @date 2020-05-11 14:20:59
+ * @date 2020-05-18 10:26:20
  */
 @Mapper
 public interface UndoLogDao extends BaseMapper<UndoLogEntity> {
