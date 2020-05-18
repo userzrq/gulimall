@@ -16,5 +16,9 @@ import com.atguigu.gulimall.commons.bean.QueryCondition;
 public interface AttrService extends IService<AttrEntity> {
 
     PageVo queryPage(QueryCondition params);
+
+    PageVo queryPageBaseAttrsByCatId(QueryCondition queryCondition, Integer catId);
+
+    PageVo queryPageSaleAttrsByCatId(QueryCondition queryCondition, Integer catId);
 }
 

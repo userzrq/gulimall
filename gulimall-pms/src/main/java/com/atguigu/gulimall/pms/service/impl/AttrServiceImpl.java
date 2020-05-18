@@ -27,4 +27,32 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return new PageVo(page);
     }
 
+    @Override
+    public PageVo queryPageBaseAttrsByCatId(QueryCondition queryCondition, Integer catId) {
+        IPage<AttrEntity> page = this.page(
+                // 分页条件
+                new Query<AttrEntity>().getPage(queryCondition),
+                // 查询条件（应用了数据库冗余字段设计）
+                new QueryWrapper<AttrEntity>()
+                        .eq("catelog_id",catId)
+                        .eq("attr_type",1)
+        );
+
+        return new PageVo(page);
+    }
+
+    @Override
+    public PageVo queryPageSaleAttrsByCatId(QueryCondition queryCondition, Integer catId) {
+        IPage<AttrEntity> page = this.page(
+                // 分页条件
+                new Query<AttrEntity>().getPage(queryCondition),
+                // 查询条件（应用了数据库冗余字段设计）
+                new QueryWrapper<AttrEntity>()
+                        .eq("catelog_id",catId)
+                        .eq("attr_type",0)
+        );
+
+        return new PageVo(page);
+    }
+
 }

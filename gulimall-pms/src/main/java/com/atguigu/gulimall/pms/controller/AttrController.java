@@ -34,6 +34,34 @@ public class AttrController {
     private AttrService attrService;
 
     /**
+     *查询某个三级分类下的所有基本属性
+     * @param queryCondition
+     * @param catId
+     * @return
+     */
+    @ApiOperation("查询某个三级分类下的所有基本属性")
+    @GetMapping("/base/{catId}")
+    public Resp<PageVo> getBaseAttrsByCatId(QueryCondition queryCondition,@PathVariable("catId") Integer catId){
+        PageVo page = attrService.queryPageBaseAttrsByCatId(queryCondition,catId);
+
+        return Resp.ok(page);
+    }
+
+    /**
+     * 查询某个三级分类下的所有销售属性
+     * @param queryCondition
+     * @param catId
+     * @return
+     */
+    @ApiOperation("查询某个三级分类下的所有销售属性")
+    @GetMapping("/sale/{catId}")
+    public Resp<PageVo> getSaleAttrsByCatId(QueryCondition queryCondition,@PathVariable("catId") Integer catId){
+        PageVo page = attrService.queryPageSaleAttrsByCatId(queryCondition,catId);
+
+        return Resp.ok(page);
+    }
+
+    /**
      * 列表
      */
     @ApiOperation("分页查询(排序)")
