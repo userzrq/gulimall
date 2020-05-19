@@ -1,14 +1,18 @@
 package com.atguigu.gulimall.sms.controller;
 
+import java.awt.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
 import com.atguigu.gulimall.commons.bean.PageVo;
 import com.atguigu.gulimall.commons.bean.QueryCondition;
 import com.atguigu.gulimall.commons.bean.Resp;
+import com.atguigu.gulimall.commons.to.SkuSaleInfoTo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,12 +30,29 @@ import com.atguigu.gulimall.sms.service.SkuBoundsService;
  * @email userzrq@126.com
  * @date 2020-05-18 10:26:20
  */
+@Slf4j
 @Api(tags = "商品sku积分设置 管理")
 @RestController
 @RequestMapping("sms/skubounds")
 public class SkuBoundsController {
     @Autowired
     private SkuBoundsService skuBoundsService;
+
+    /**
+     * 保存sku的所有营销信息
+     * springcloud走的是JSON，一定要加@RequestBody
+     * @return
+     */
+    @ApiOperation("保存sku的所有营销信息")
+    @PostMapping("/saleinfo/save")
+    public Resp<Object> saveSkuSaleInfos(@RequestBody List<SkuSaleInfoTo> tos){
+        log.info("---sms receiving data---:{}",tos);        // 0占位
+
+        skuBoundsService.saveSkuAllSaleInfo(tos);
+
+        return Resp.ok(null);
+    }
+
 
     /**
      * 列表

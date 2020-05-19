@@ -1,11 +1,15 @@
 package com.atguigu.gulimall.pms.service.impl;
 
+import com.atguigu.gulimall.commons.to.SkuSaleInfoTo;
 import com.atguigu.gulimall.commons.utils.AppUtils;
 import com.atguigu.gulimall.pms.dao.*;
 import com.atguigu.gulimall.pms.entity.*;
+import com.atguigu.gulimall.pms.feign.SmsSkuSaleInfoFeifnService;
 import com.atguigu.gulimall.pms.vo.BaseAttrVo;
+import com.atguigu.gulimall.pms.vo.SaleAttrVo;
 import com.atguigu.gulimall.pms.vo.SkuVo;
 import com.atguigu.gulimall.pms.vo.SpuAllSaveVo;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,7 @@ import com.atguigu.gulimall.commons.bean.QueryCondition;
 import com.atguigu.gulimall.pms.service.SpuInfoService;
 
 
+@Slf4j
 @Service("spuInfoService")
 public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> implements SpuInfoService {
 
@@ -44,6 +49,15 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
     @Autowired
     private SkuImagesDao skuImagesDao;
+
+    @Autowired
+    private AttrDao attrDao;
+
+    @Autowired
+    private SkuSaleAttrValueDao skuSaleAttrValueDao;
+
+    @Autowired
+    private SmsSkuSaleInfoFeifnService smsSkuSaleInfoFeifnService;
 
     @Override
     public PageVo queryPage(QueryCondition params) {
@@ -76,24 +90,30 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         return new PageVo(page);
     }
 
+    //  保存大vo的方法，其中调用了多个方法,需要用分布式事务管理这整个流程
+
     @Override
     public void saveSpuBigVo(SpuAllSaveVo spuAllVo) {
 
         // 1.保存spu的基本信息
-        // 1.1 保存spu的基本信息
+            // 1.1 保存spu的基本信息
         Long spuId = this.saveSpuBaseInfo(spuAllVo);
-        // 1.2 保存spu的图片信息
+            // 1.2 保存spu的图片信息
         this.saveSpuImages(spuId,spuAllVo.getSpuImages());
 
         // 2.保存spu的基本属性信息
         List<BaseAttrVo> baseAttrs = spuAllVo.getBaseAttrs();
         this.saveSpuBaseAttrs(spuId,baseAttrs);
 
-        // 3.保存sku以及sku的营销相关信息
+        // 3.保存sku以及sku的销售属性相关信息
         this.saveSkuInfos(spuId,spuAllVo.getSkus());
+
+        // 4.远程调用商品优惠微服务存储商品优惠信息(saveSkuInfos方法中)
+            // 4.1提取出所有的优惠信息
     }
 
 
+    // 负责解析出数据作出相应的业务
     @Override
     public Long saveSpuBaseInfo(SpuAllSaveVo spuAllVo) {
 
@@ -138,15 +158,17 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
             allSave.add(entity);
         }
-
         productAttrValueDao.insertBatch(allSave);
     }
+
 
     // 保存sku的所有详情
     @Override
     public void saveSkuInfos(Long spuId, List<SkuVo> skus) {
         // 0.查出spu信息：进方法的所以sku属于同一个spu下
         SpuInfoEntity spuInfoEntity = this.getById(spuId);
+
+        List<SkuSaleInfoTo> tos = new ArrayList<>();
         Long id = spuInfoEntity.getId();
         // catalog_id  brand_id
         // 1.保存sku的info信息
@@ -167,9 +189,10 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             skuInfoEntity.setPrice(skuVo.getPrice());
 
             skuInfoDao.insert(skuInfoEntity);
+            Long skuId = skuInfoEntity.getSkuId();
+
 
             // 2.保存sku的所有对应图片
-            Long skuId = skuInfoEntity.getSkuId();
             for (int i = 0; i < images.length; i++) {
                 SkuImagesEntity skuImagesEntity = new SkuImagesEntity();
                 skuImagesEntity.setSkuId(skuId);
@@ -179,8 +202,35 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 skuImagesDao.insert(skuImagesEntity);
             }
 
-            // 3.当前sku的所有销售属性组合保存起来
+
+            // 3.当前sku的所有销售属性 组合 保存起来
+            List<SaleAttrVo> saleAttrs = skuVo.getSaleAttrs();
+            for (SaleAttrVo saleAttr : saleAttrs) {
+                // 查询当前属性的信息
+                SkuSaleAttrValueEntity entity = new SkuSaleAttrValueEntity();
+                entity.setAttrId(saleAttr.getAttrId());
+                AttrEntity attrEntity = attrDao.selectById(saleAttr.getAttrId());
+                entity.setAttrName(attrEntity.getAttrName());
+                entity.setAttrSort(0);
+                entity.setAttrValue(saleAttr.getAttrValue());
+                entity.setSkuId(skuId);
+                // 保存sku与销售属性的关联关系
+                skuSaleAttrValueDao.insert(entity);
+            }
+
+            //-------------pms系统工作完成--------------
+
+            //-------------以下由sms完成，保存每一个sku的相关数据--------------
+            SkuSaleInfoTo skuSaleInfoTo = new SkuSaleInfoTo();
+            BeanUtils.copyProperties(skuVo,skuSaleInfoTo);
+            skuSaleInfoTo.setSkuId(skuId);
+
+            tos.add(skuSaleInfoTo);
         }
+        // for循环结束后,远程调用sms微服务，完成保存
+        log.info("--- Pms send data to Sms ---{}",tos);
+        smsSkuSaleInfoFeifnService.saveSkuSaleInfos(tos);
+        log.info("--- Pms send data ");
     }
 
 
