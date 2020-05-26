@@ -9,8 +9,10 @@ import com.atguigu.gulimall.pms.vo.BaseAttrVo;
 import com.atguigu.gulimall.pms.vo.SaleAttrVo;
 import com.atguigu.gulimall.pms.vo.SkuVo;
 import com.atguigu.gulimall.pms.vo.SpuAllSaveVo;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ import com.atguigu.gulimall.commons.bean.Query;
 import com.atguigu.gulimall.commons.bean.QueryCondition;
 
 import com.atguigu.gulimall.pms.service.SpuInfoService;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Slf4j
@@ -92,21 +96,30 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
     //  保存大vo的方法，其中调用了多个方法,需要用分布式事务管理这整个流程
 
+    @GlobalTransactional(rollbackFor = {Exception.class})
     @Override
     public void saveSpuBigVo(SpuAllSaveVo spuAllVo) {
 
+        //获取代理对象,this不会触发新的事务传播特性，使用代理对象调用方法
+        SpuInfoService proxy = (SpuInfoService) AopContext.currentProxy();
+
         // 1.保存spu的基本信息
             // 1.1 保存spu的基本信息
-        Long spuId = this.saveSpuBaseInfo(spuAllVo);
-            // 1.2 保存spu的图片信息
-        this.saveSpuImages(spuId,spuAllVo.getSpuImages());
+        //Long spuId = this.saveSpuBaseInfo(spuAllVo);
+        Long spuId = proxy.saveSpuBaseInfo(spuAllVo);
+
+        // 1.2 保存spu的图片信息
+        //this.saveSpuImages(spuId,spuAllVo.getSpuImages());
+        proxy.saveSpuImages(spuId,spuAllVo.getSpuImages());
 
         // 2.保存spu的基本属性信息
         List<BaseAttrVo> baseAttrs = spuAllVo.getBaseAttrs();
-        this.saveSpuBaseAttrs(spuId,baseAttrs);
+        //this.saveSpuBaseAttrs(spuId,baseAttrs);
+        proxy.saveSpuBaseAttrs(spuId,baseAttrs);
 
         // 3.保存sku以及sku的销售属性相关信息
-        this.saveSkuInfos(spuId,spuAllVo.getSkus());
+        //this.saveSkuInfos(spuId,spuAllVo.getSkus());
+        proxy.saveSkuInfos(spuId,spuAllVo.getSkus());
 
         // 4.远程调用商品优惠微服务存储商品优惠信息(saveSkuInfos方法中)
             // 4.1提取出所有的优惠信息
@@ -163,6 +176,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
 
     // 保存sku的所有详情
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
     public void saveSkuInfos(Long spuId, List<SkuVo> skus) {
         // 0.查出spu信息：进方法的所以sku属于同一个spu下
