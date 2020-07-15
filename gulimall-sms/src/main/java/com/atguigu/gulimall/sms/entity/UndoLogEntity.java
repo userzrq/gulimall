@@ -46,7 +46,7 @@ public class UndoLogEntity implements Serializable {
 	 * 
 	 */
 	@ApiModelProperty(name = "rollbackInfo",value = "")
-	private unknowType rollbackInfo;
+	private byte[] rollbackInfo;
 	/**
 	 * 
 	 */
