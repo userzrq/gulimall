@@ -6,12 +6,14 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.List;
+
 @FeignClient("gulimall-search")
 public interface EsFeignService {
 
     @PostMapping("/es/spu/up")
-    public Resp<Object> spuUp(@RequestBody EsSkuVo vo);
+    public Resp<Object> spuUp(@RequestBody List<EsSkuVo> vos);
 
     @PostMapping("/es/spu/down")
-    public Resp<Object> spuDown(@RequestBody EsSkuVo vo);
+    public Resp<Object> spuDown(@RequestBody List<EsSkuVo> vos);
 }

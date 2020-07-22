@@ -2,11 +2,14 @@ package com.atguigu.gulimall.pms.service.impl;
 
 import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.commons.to.SkuSaleInfoTo;
+import com.atguigu.gulimall.commons.to.SkuStockVo;
+import com.atguigu.gulimall.commons.to.es.EsSkuAttributeValue;
 import com.atguigu.gulimall.commons.utils.AppUtils;
 import com.atguigu.gulimall.pms.dao.*;
 import com.atguigu.gulimall.pms.entity.*;
 import com.atguigu.gulimall.pms.feign.EsFeignService;
 import com.atguigu.gulimall.pms.feign.SmsSkuSaleInfoFeignService;
+import com.atguigu.gulimall.pms.feign.WmsFeignService;
 import com.atguigu.gulimall.pms.vo.BaseAttrVo;
 import com.atguigu.gulimall.pms.vo.SaleAttrVo;
 import com.atguigu.gulimall.pms.vo.SkuVo;
@@ -15,11 +18,13 @@ import com.atguigu.gulimall.commons.to.es.EsSkuVo;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.translate.JavaUnicodeEscaper;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.awt.font.ShapeGraphicAttribute;
 import java.util.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -64,10 +69,19 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     private SkuSaleAttrValueDao skuSaleAttrValueDao;
 
     @Autowired
+    private WmsFeignService wmsFeignService;
+
+    @Autowired
     private SmsSkuSaleInfoFeignService smsSkuSaleInfoFeifnService;
 
     @Autowired
     private EsFeignService esFeignService;
+
+    @Autowired
+    private BrandDao brandDao;
+
+    @Autowired
+    private CategoryDao categoryDao;
 
     @Override
     public PageVo queryPage(QueryCondition params) {
@@ -100,8 +114,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         return new PageVo(page);
     }
 
-    //  保存大vo的方法，其中调用了多个方法,需要用分布式事务管理这整个流程
 
+    /**
+     * 保存大vo的方法，其中调用了多个方法,需要用分布式事务管理这整个流程
+     *
+     * @param spuAllVo
+     */
     @GlobalTransactional(rollbackFor = {Exception.class})
     @Override
     public void saveSpuBigVo(SpuAllSaveVo spuAllVo) {
@@ -132,7 +150,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     }
 
 
-    // 负责解析出数据作出相应的业务
+    /**
+     * 负责解析出数据作出相应的业务
+     *
+     * @param spuAllVo
+     * @return
+     */
     @Override
     public Long saveSpuBaseInfo(SpuAllSaveVo spuAllVo) {
 
@@ -181,7 +204,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     }
 
 
-    // 保存sku的所有详情
+    /**
+     * 保存sku的所有详情
+     *
+     * @param spuId
+     * @param skus
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
     public void saveSkuInfos(Long spuId, List<SkuVo> skus) {
@@ -260,12 +288,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         // 2.上架：将商品需要检索的信息放在es中
         //   下架：将商品需要检索的信息从es中删除
 
-        if (status == 0) {
+        if (status == 1) {
             // 下架
-            spuDown(spuId, status);
+            spuUp(spuId, status);
         } else {
             // 上架
-            spuUp(spuId, status);
+            spuDown(spuId, status);
         }
     }
 
@@ -276,20 +304,83 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
      * @param status
      */
     private void spuUp(Long spuId, Integer status) {
-        // 1.修改数据库中上下架的状态
+        // 1.查出要使用的基本信息（品牌、分类 sku和spu是一致的）
+        SpuInfoEntity spuInfoEntity = spuInfoDao.selectById(spuId);
+        BrandEntity brandEntity = brandDao.selectById(spuInfoEntity.getBrandId());
+        CategoryEntity category = categoryDao.selectById(spuInfoEntity.getCatalogId());
+
 
         // 2.上架：将商品需要检索的信息放在es中
-        EsSkuVo esSkuVo = new EsSkuVo();
+        ArrayList<EsSkuVo> esSkuVos = new ArrayList<>();
+        // 2.1查出当前需要上架的spu的所有sku信息
+        List<SkuInfoEntity> skus = skuInfoDao.selectList(new QueryWrapper<SkuInfoEntity>().eq("spu_id", spuId));
 
-        // 3.远程调用gulimall-search微服务对Es添加数据,远程端给予结果响应
-        Resp<Object> resp = esFeignService.spuUp(esSkuVo);
-        // 远程调用成功则修改本地数据库
-        if(resp.getCode() == 0){
-            SpuInfoEntity entity = new SpuInfoEntity();
-            entity.setId(spuId);
-            entity.setPublishStatus(1);
-            entity.setUodateTime(new Date());
-            spuInfoDao.updateById(entity);
+        List<Long> skuIds = new ArrayList<>();
+
+
+        // 2.1.1远程调用库存微服务，查询spu下所有sku的库存信息
+        skus.forEach(skuInfoEntity -> {
+            Long skuId = skuInfoEntity.getSkuId();
+            skuIds.add(skuId);
+        });
+
+        // 2.1.2远程检索所有sku的库存信息
+        Resp<List<SkuStockVo>> infos = wmsFeignService.skuWareInfos(skuIds);
+        List<SkuStockVo> skuStockVos = infos.getData();
+        // 2.1.3查出当前spu所有可以供检索的属性 attr search_type字段表示是否需要被检索到（先挑出所有属性，再筛选出）
+        List<ProductAttrValueEntity> spu_id = productAttrValueDao.selectList(new QueryWrapper<ProductAttrValueEntity>().eq("spu_id", spuId));
+        // 2.1.4过滤出可以被检索的
+        ArrayList<Long> attrIds = new ArrayList<>();
+        spu_id.forEach(productAttrValueEntity -> {
+                    attrIds.add(productAttrValueEntity.getAttrId());
+                }
+        );
+        List<AttrEntity> list = attrDao.selectList(new QueryWrapper<AttrEntity>().in("attr_id", attrIds).eq("search_type", 1));
+        // 2.1.5在spu_id过滤处list的所有数据
+        //ArrayList<ProductAttrValueEntity> productAttrValueEntities = new ArrayList<>();
+        List<EsSkuAttributeValue> esSkuAttributeValues = new ArrayList<>();
+        list.forEach((item) -> {
+            //当前能被检索的属性
+            Long attrId = item.getAttrId();
+            //拿到真正的值
+            spu_id.forEach(s -> {
+                if (item.getAttrId() == s.getAttrId()) {
+
+                    // s为当前属性
+                    EsSkuAttributeValue value = new EsSkuAttributeValue();
+                    value.setId(s.getId());
+                    value.setName(s.getAttrName());
+                    value.setProductAttributeId(s.getAttrId());
+                    value.setSpuId(spuId);
+                    value.setValue(s.getAttrValue());
+
+                    esSkuAttributeValues.add(value);
+
+                    //productAttrValueEntities.add(s);
+                }
+            });
+        });
+
+
+        if (skus != null && skus.size() > 0) {
+            // 2.2 构造所有需要保存在es中的sku信息
+            skus.forEach(skuInfoEntity -> {
+                EsSkuVo esSkuVo = skuInfoToEsSkuVo(skuInfoEntity, spuInfoEntity, brandEntity, category, skuStockVos, esSkuAttributeValues);
+                esSkuVos.add(esSkuVo);
+            });
+
+            // 3.远程调用gulimall-search微服务对Es添加数据,远程端给予结果响应
+            Resp<Object> resp = esFeignService.spuUp(esSkuVos);
+            // 远程调用成功则修改本地数据库
+            if (resp.getCode() == 0) {
+                SpuInfoEntity entity = new SpuInfoEntity();
+                entity.setId(spuId);
+                entity.setPublishStatus(1);
+                entity.setUodateTime(new Date());
+                spuInfoDao.updateById(entity);
+            }
+
+            // 4.修改数据库中上下架的状态
         }
     }
 
@@ -303,15 +394,60 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         // 1.修改数据库中上下架的状态
 
         // 2.下架：将商品需要检索的信息从es中删除
-        EsSkuVo esSkuVo = new EsSkuVo();
+        ArrayList<EsSkuVo> esSkuVos = new ArrayList<>();
         // 3.远程调用gulimall-search微服务对Es删除数据
-        Resp<Object> resp = esFeignService.spuDown(esSkuVo);
-        if(resp.getCode() == 0){
+        Resp<Object> resp = esFeignService.spuDown(esSkuVos);
+        if (resp.getCode() == 0) {
             SpuInfoEntity entity = new SpuInfoEntity();
             entity.setId(spuId);
             entity.setPublishStatus(0);
             entity.setUodateTime(new Date());
             spuInfoDao.updateById(entity);
         }
+    }
+
+    /**
+     * 将SkuInfoEntity加工成EsSkuVo
+     *
+     * @param skuInfoEntity
+     * @param spuInfoEntity
+     * @param skuStockVos
+     * @param productAttrValueEntities
+     * @return
+     */
+    private EsSkuVo skuInfoToEsSkuVo(SkuInfoEntity skuInfoEntity, SpuInfoEntity spuInfoEntity, BrandEntity brandEntity, CategoryEntity category, List<SkuStockVo> skuStockVos, List<EsSkuAttributeValue> productAttrValueEntities) {
+
+        EsSkuVo vo = new EsSkuVo();
+        vo.setId(skuInfoEntity.getSkuId());
+        vo.setBrandId(skuInfoEntity.getBrandId());
+        // 品牌名
+        if (brandEntity != null) {
+            vo.setBrandName(brandEntity.getName());
+        }
+        // 搜索的标题
+        vo.setName(skuInfoEntity.getSkuTitle());
+        // sku的图片
+        vo.setPic(skuInfoEntity.getSkuDefaultImg());
+        // sku的价格
+        vo.setPrice(skuInfoEntity.getPrice());
+        // 所属分类的id
+        vo.setProductCategoryId(skuInfoEntity.getCatalogId());
+        // 所属分类的名字
+        if (category != null) {
+            vo.setProductCategoryName(category.getName());
+        }
+        vo.setSale(0);
+
+        vo.setSort(0);
+        // 保存库存
+        skuStockVos.forEach(item -> {
+            if (item.getSkuId() == skuInfoEntity.getSkuId()) {
+                vo.setStock(item.getStock());
+            }
+        });
+        vo.setAttrValueList(productAttrValueEntities);
+        vo.setAttrValueList(null);
+
+        return vo;
     }
 }
