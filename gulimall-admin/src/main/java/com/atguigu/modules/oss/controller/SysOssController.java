@@ -9,7 +9,6 @@
 package com.atguigu.modules.oss.controller;
 
 import com.atguigu.modules.sys.service.SysConfigService;
-import com.google.gson.Gson;
 import com.atguigu.common.exception.RRException;
 import com.atguigu.common.utils.ConfigConstant;
 import com.atguigu.common.utils.Constant;
@@ -23,6 +22,7 @@ import com.atguigu.modules.oss.cloud.CloudStorageConfig;
 import com.atguigu.modules.oss.cloud.OSSFactory;
 import com.atguigu.modules.oss.entity.SysOssEntity;
 import com.atguigu.modules.oss.service.SysOssService;
+import com.google.gson.Gson;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
