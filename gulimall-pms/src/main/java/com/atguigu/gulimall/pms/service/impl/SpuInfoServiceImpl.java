@@ -18,13 +18,11 @@ import com.atguigu.gulimall.commons.to.es.EsSkuVo;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.translate.JavaUnicodeEscaper;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.awt.font.ShapeGraphicAttribute;
 import java.util.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -335,9 +333,10 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                     attrIds.add(productAttrValueEntity.getAttrId());
                 }
         );
+        // 过滤掉非筛选属性
         List<AttrEntity> list = attrDao.selectList(new QueryWrapper<AttrEntity>().in("attr_id", attrIds).eq("search_type", 1));
         // 2.1.5在spu_id过滤处list的所有数据
-        //ArrayList<ProductAttrValueEntity> productAttrValueEntities = new ArrayList<>();
+        // ArrayList<ProductAttrValueEntity> productAttrValueEntities = new ArrayList<>();
         List<EsSkuAttributeValue> esSkuAttributeValues = new ArrayList<>();
         list.forEach((item) -> {
             //当前能被检索的属性

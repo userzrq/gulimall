@@ -15,22 +15,24 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/index")
+// 访问数据库频率过高，放缓存
 public class IndexController {
 
     @Autowired
     private CategoryService categoryService;
 
-    @ApiOperation("获取所有的一级分类")
+    @ApiOperation("获取所有分类")
     @GetMapping("/cates")
     public Resp<Object> levelOneCatalogs(){
-        List<CategoryEntity> data = categoryService.getCategoryByLevel(1);
+        List<CategoryWithChildrensVo> data = categoryService.getCategoryChildrensAndSubsById(0);
         return Resp.ok(data);
     }
 
     @ApiOperation("获取所有的一级分类")
     @GetMapping("/cates/{id}")
     public Resp<Object> catelogChildrens(@PathVariable("id") Integer id){
-        // 要获取二级分类以机这个分类的子分类  subs
+
+        // 要获取二级分类以及这个分类的子分类  subs
         List<CategoryWithChildrensVo> childrens = categoryService.getCategoryChildrensAndSubsById(id);
         return Resp.ok(childrens);
     }
