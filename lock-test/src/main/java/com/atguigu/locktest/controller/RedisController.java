@@ -17,4 +17,28 @@ public class RedisController {
 
         return "ok";
     }
+
+    @GetMapping("/read")
+    public String readValue() throws InterruptedException {
+        return redisService.read();
+    }
+
+    @GetMapping("/write")
+    public String writeValue() throws InterruptedException {
+        return redisService.write();
+    }
+
+    @GetMapping("/lockdoor")
+    public String lockdoor() throws InterruptedException {
+        // redis成功把门锁上,就return ok
+        redisService.lockdoor();
+        return "ok";
+    }
+
+    @GetMapping("/gobackhome")
+    public void gobackhome(){
+
+        redisService.gobackhome();
+    }
+
 }
