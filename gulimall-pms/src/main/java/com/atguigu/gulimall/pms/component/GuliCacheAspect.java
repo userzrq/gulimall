@@ -103,7 +103,10 @@ public class GuliCacheAspect {
             clearCurrentCache(prefix);
         } finally {
             log.info("缓存切面介入工作...后置通知");
-            lock.unlock();
+            if(lock.isLocked()){    // 如果锁已被锁定了，则需要解锁
+                lock.unlock();
+            }
+
         }
 
         return null;

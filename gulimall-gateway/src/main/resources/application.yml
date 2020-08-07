@@ -8,7 +8,7 @@ spring:
         - id: gulimall_pms_route
           uri: lb://gulimall-pms
           predicates:
-            - Path=/pms/**,api/index/**
+            - Path=/pms/**,api/index/**,api/item/**
           filters:
             - RewritePath=/api/(?<segment>.*),/$\{segment}
 
