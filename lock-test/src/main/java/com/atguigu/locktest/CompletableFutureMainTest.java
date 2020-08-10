@@ -21,6 +21,7 @@ public class CompletableFutureMainTest {
             return "黑色 128G";
         }); //8s
 
+        // completableFuture全部完成时
         CompletableFuture<Void> future = CompletableFuture.allOf(price, coupon, baseAttr);
 
         CompletableFuture<Object> antFuture = CompletableFuture.anyOf(price, coupon, baseAttr);
