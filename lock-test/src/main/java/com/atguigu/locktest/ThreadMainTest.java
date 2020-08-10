@@ -61,9 +61,9 @@ public class ThreadMainTest {
 
     @Test
     public void test() throws Exception {
-//        System.out.println("outside thread:" + Thread.currentThread().getName());
-//        new Thread(new HelloThread()).start();
-//        System.out.println("outside thread done" + Thread.currentThread().getName());
+        //        System.out.println("outside thread:" + Thread.currentThread().getName());
+        //        new Thread(new HelloThread()).start();
+        //        System.out.println("outside thread done" + Thread.currentThread().getName());
 
         FutureTask<Object> task = new FutureTask<>(() -> {
             Thread.sleep(3000);
@@ -128,11 +128,11 @@ public class ThreadMainTest {
         executorService.shutdown();
 
 
-//        Test1 test1 = new Test1();
-//        FutureTask<Integer> integerFutureTask = new FutureTask<Integer>(test1);
-//
-//        Thread thread = new Thread(integerFutureTask);
-//        thread.start();
+        //        Test1 test1 = new Test1();
+        //        FutureTask<Integer> integerFutureTask = new FutureTask<Integer>(test1);
+        //
+        //        Thread thread = new Thread(integerFutureTask);
+        //        thread.start();
 
         try {
             Thread.sleep(1000);
