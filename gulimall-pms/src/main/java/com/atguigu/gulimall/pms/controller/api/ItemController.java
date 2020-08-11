@@ -52,7 +52,7 @@ public class ItemController {
         //              访问atguigu.com下的所有都会带上cookie
         //              访问api.atguigu,com下的所有都会带上
         //              访问user.atguigu,com下的所有都会带上
-        cookie.
+        //cookie.
 
 
         response.addCookie(new Cookie("hello", "userzrq"));
