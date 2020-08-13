@@ -29,15 +29,15 @@ import java.util.UUID;
  * </ol>
  */
 @Slf4j
-public class JwtUtils {
+public class SSOJwtUtils {
     /**
      * JWT 加解密类型
      */
     private static final SignatureAlgorithm JWT_ALG = SignatureAlgorithm.HS256;
     /**
-     * JWT 生成密钥使用的密码
+     * JWT 生成密钥使用的加密字符串
      */
-    public static final String JWT_RULE = "atguiguhelloheihei";
+    public static final String JWT_RULE = "atguiguuserzrq";
 
     /**
      * JWT 添加至HTTP HEAD中的前缀

@@ -5,13 +5,11 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 public class GuliJwtUtils {
 
-    private static String key = "DSJAKLDJALJ_ATGUIGU";
+    private static String key = "USERZRQ_ATGUIGU";
 
     /**
      *

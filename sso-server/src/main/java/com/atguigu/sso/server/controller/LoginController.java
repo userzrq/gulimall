@@ -1,5 +1,9 @@
 package com.atguigu.sso.server.controller;
 
+
+import com.atguigu.sso.server.utils.SSOJwtUtils;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -10,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -52,6 +58,18 @@ public class LoginController {
             String token = UUID.randomUUID().toString().substring(0, 5);
 
             // 不推荐使用UUID的方式，1.用jwt支持本地验证 2.jwt自带负载信息
+
+            /**
+             * 封装JWT的负载信息
+             */
+            Map<String, Object> loginUser = new HashMap<>();
+            loginUser.put("name",username);
+            loginUser.put("email",username+"@qq.com");
+
+            /**
+             * 生成一个JWT
+             */
+            Jwts.builder().signWith(SignatureAlgorithm.HS256, SSOJwtUtils.JWT_RULE);
 
             // 在redis中存一份用户信息
             // redisTemplate.opsForValue().set(token,user);
