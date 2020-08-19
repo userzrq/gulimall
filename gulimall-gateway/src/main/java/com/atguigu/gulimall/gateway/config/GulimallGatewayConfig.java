@@ -1,8 +1,10 @@
 package com.atguigu.gulimall.gateway.config;
 
+import com.atguigu.gulimall.gateway.filter.GuliAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
@@ -11,6 +13,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 public class GulimallGatewayConfig {
 
     /**
+     * 跨域过滤器
      * Gateway
      *  Reactive;  Webflux;
      * @return
@@ -29,4 +32,11 @@ public class GulimallGatewayConfig {
 
         return new CorsWebFilter(source);
     }
+
+
+//    @Bean
+//    @Order(1)
+//    public GuliAuthenticationFilter authenticationFilter(){
+//        return new GuliAuthenticationFilter();
+//    }
 }

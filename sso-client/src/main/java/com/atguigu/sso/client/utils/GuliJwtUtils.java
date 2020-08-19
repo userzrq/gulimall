@@ -1,4 +1,4 @@
-package com.atguigu.sso.server.utils;
+package com.atguigu.sso.client.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
@@ -59,3 +59,4 @@ public class GuliJwtUtils {
         return Jwts.parser().setSigningKey(key).parseClaimsJws(jwt).getBody();
     }
 }
+

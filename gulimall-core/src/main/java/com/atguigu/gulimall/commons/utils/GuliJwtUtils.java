@@ -1,4 +1,4 @@
-package com.atguigu.sso.server.utils;
+package com.atguigu.gulimall.commons.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
@@ -9,7 +9,12 @@ import java.util.Map;
 
 public class GuliJwtUtils {
 
+    /**
+     * 自定义秘钥,jwt的最后一部分
+     */
     private static String key = "USERZRQ_ATGUIGU";
+
+    private static String bearerPrefix = "Bearer ";
 
     /**
      * @param payload 自定义的负载内容
@@ -39,11 +44,12 @@ public class GuliJwtUtils {
         }
 
         String compact = builder.compact();
-        return compact;
+        return bearerPrefix + compact;
     }
 
 
     public static void checkJwt(String jwt) {
+        jwt = jwt.substring(bearerPrefix.length());
 
         Jwts.parser().setSigningKey(key).parse(jwt);
 
@@ -56,6 +62,8 @@ public class GuliJwtUtils {
      * @return
      */
     public static Map<String, Object> getJwtBody(String jwt) {
+        jwt = jwt.substring(bearerPrefix.length());
+
         return Jwts.parser().setSigningKey(key).parseClaimsJws(jwt).getBody();
     }
 }

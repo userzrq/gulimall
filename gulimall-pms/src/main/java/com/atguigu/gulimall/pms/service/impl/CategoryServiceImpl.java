@@ -1,11 +1,9 @@
 package com.atguigu.gulimall.pms.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.atguigu.gulimall.commons.bean.Constant;
 import com.atguigu.gulimall.pms.annotation.GuliCache;
 import com.atguigu.gulimall.pms.vo.CategoryWithChildrensVo;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
