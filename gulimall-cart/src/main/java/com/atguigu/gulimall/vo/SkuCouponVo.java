@@ -2,6 +2,8 @@ package com.atguigu.gulimall.vo;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 
 /**
  * 商品可以用的优惠券
@@ -15,4 +17,6 @@ public class SkuCouponVo {
     private Long couponId;  // 优惠券id
 
     private String desc;    // 优惠券描述
+
+    private BigDecimal amount; // 优惠券的金额
 }

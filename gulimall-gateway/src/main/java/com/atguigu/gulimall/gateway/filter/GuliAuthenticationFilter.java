@@ -50,6 +50,8 @@ public class GuliAuthenticationFilter implements GlobalFilter {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
         // 判断请求头中是否携带了授权字段 Authentication,如果携带就对令牌进行校验
+        // Authentication是一个 JWT 字符串
+
         ServerHttpRequest request = exchange.getRequest();
         List<String> authentication = request.getHeaders().get("Authentication");
         if (authentication != null && authentication.size() > 0) {

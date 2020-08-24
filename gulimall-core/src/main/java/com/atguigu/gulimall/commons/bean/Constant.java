@@ -17,4 +17,14 @@ public class Constant {
      * redis 用户登录信息的自动过期时间，60分钟没有请求发过来，在gateway校验令牌就自动过期
      */
     public static final Long LOGIN_USER_TIMEOUT_MINUTES = 60L;
+
+    /**
+     * redis 用户购物车前缀
+     */
+    public static  final String CART_PREFIX = "cart:user:";
+
+    /**
+     * redis 用户临时购物车前缀
+     */
+    public static  final String TEMP_CART_PREFIX = "cart:temp:";
 }
