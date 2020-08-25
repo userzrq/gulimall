@@ -1,7 +1,14 @@
 package com.atguigu.gulimall.pms.service.impl;
 
+import com.atguigu.gulimall.commons.to.SkuInfoVo;
+import com.atguigu.gulimall.pms.dao.SkuSaleAttrValueDao;
+import com.atguigu.gulimall.pms.entity.SkuSaleAttrValueEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.Map;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,6 +24,12 @@ import com.atguigu.gulimall.pms.service.SkuInfoService;
 @Service("skuInfoService")
 public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> implements SkuInfoService {
 
+    @Autowired
+    private SkuInfoDao skuInfoDao;
+
+    @Autowired
+    SkuSaleAttrValueDao skuSaleAttrValueDao;
+
     @Override
     public PageVo queryPage(QueryCondition params) {
         IPage<SkuInfoEntity> page = this.page(
@@ -25,6 +38,28 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         );
 
         return new PageVo(page);
+    }
+
+
+    @Override
+    public SkuInfoVo getSkuVo(Long skuId) {
+        SkuInfoEntity entity = skuInfoDao.selectById(skuId);
+
+        SkuInfoVo vo = new SkuInfoVo();
+        vo.setSkuId(skuId);
+        vo.setPrice(entity.getPrice());
+        vo.setPics(entity.getSkuDefaultImg());
+
+        // 将相关属性拼串拼成字符串
+        List<SkuSaleAttrValueEntity> attrValueEntities = skuSaleAttrValueDao.selectList(new QueryWrapper<SkuSaleAttrValueEntity>().eq("sku_id", skuId));
+        String meal = "";
+        for (SkuSaleAttrValueEntity value : attrValueEntities) {
+            meal += "-" + value.getAttrValue();
+        }
+        vo.setSetmeal(meal); // 套餐
+        vo.setSkuTitle(entity.getSkuTitle());
+
+        return vo;
     }
 
 }

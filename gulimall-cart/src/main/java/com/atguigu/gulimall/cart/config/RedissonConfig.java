@@ -1,4 +1,4 @@
-package com.atguigu.gulimall.config;
+package com.atguigu.gulimall.cart.config;
 
 
 import org.redisson.Redisson;
