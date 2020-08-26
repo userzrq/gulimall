@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CartServiceImpl implements CartService {
@@ -95,7 +96,13 @@ public class CartServiceImpl implements CartService {
         CartKey key = getKey(userKey, authentication);
         String cartKey = key.getKey();
         // 1.获取购物车Rmap
-        RMap<Object, Object> map = redisson.getMap(Constant.CART_PREFIX + cartKey);    // 购物车的第一层hash
+        RMap<Object, Object> map;
+
+        if (key.isLogin()) {
+            map = redisson.getMap(Constant.CART_PREFIX + cartKey);    // 购物车的第一层hash
+        } else {
+            map = redisson.getMap(Constant.TEMP_CART_PREFIX + cartKey);    // 购物车的第一层hash
+        }
 
         // 2.添加购物车之前先确定购物车中有没有这个商品，如果没有就新增，如果有就数量+num
         String item = (String) map.get(skuId.toString());        // 购物车的第二层hash,拿到的String是CartItemVo的Json串
@@ -164,6 +171,8 @@ public class CartServiceImpl implements CartService {
                 cartKey.setMerge(false);
                 cartKey.setTemp(true); // 这是一个临时的token
             }
+            // 未登录购物车一个月过期，再次访问自动续期
+            redisTemplate.expire(Constant.TEMP_CART_PREFIX + key, Constant.TEMP_CART_TIMEOUT, TimeUnit.MINUTES);
         }
         cartKey.setKey(key);
 

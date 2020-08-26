@@ -21,10 +21,15 @@ public class Constant {
     /**
      * redis 用户购物车前缀
      */
-    public static  final String CART_PREFIX = "cart:user:";
+    public static final String CART_PREFIX = "cart:user:";
 
     /**
      * redis 用户临时购物车前缀
      */
-    public static  final String TEMP_CART_PREFIX = "cart:temp:";
+    public static final String TEMP_CART_PREFIX = "cart:temp:";
+
+    /**
+     * redis 临时购物车过期时间，30天
+     */
+    public static final Long TEMP_CART_TIMEOUT = 60 * 24 * 30L;
 }

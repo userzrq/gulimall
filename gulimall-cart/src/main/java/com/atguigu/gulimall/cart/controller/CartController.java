@@ -7,13 +7,11 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,6 +62,7 @@ public class CartController {
         Map<String, String> map = new HashMap<>();
         map.put("userKey", cartVo.getUserKey());
 
+        // 操作成功时返回给前端操作的用户标识，前端下次请求时带上，即能操作同一个购物车
         return Resp.ok(map);
     }
 }

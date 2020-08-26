@@ -11,12 +11,11 @@ spring:
             - Path=/pms/**,api/index/**,api/item/**
           filters:
             - RewritePath=/api/(?<segment>.*),/$\{segment}
-
+            # api/index/** 这样的请求路径 会被重写为{segment}，即 gulimall-pms/**
         - id: gulimall_oms_route
           uri: lb://gulimall-oms
           predicates:
             - Path=/oms/**
-
         - id: gulimall_sms_route
           uri: lb://gulimall-sms
           predicates:
@@ -24,12 +23,19 @@ spring:
         - id: gulimall_ums_route
           uri: lb://gulimall-ums
           predicates:
-            - Path=/ums/**
+            - Path=/ums/**,/api/ums/**
+          filters:
+            - RewritePath=/api/(?<segment>.*),/$\{segment}
         - id: gulimall_wms_route
           uri: lb://gulimall-wms
           predicates:
             - Path=/wms/**
-
+        - id: gulimall_cart_route
+          uri: lb://gulimall-cart
+          predicates:
+            - Path=/cart/**,/api/cart/**
+          filters:
+            - RewritePath=/api/(?<segment>.*),/$\{segment}
 
 
 #      globalcors:
