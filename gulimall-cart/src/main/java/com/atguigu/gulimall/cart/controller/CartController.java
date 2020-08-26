@@ -59,8 +59,10 @@ public class CartController {
 
         CartVo cartVo = cartService.addToCart(skuId, num, userKey, authentication);
 
-        Map<String, String> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
+        // 当用户登录时，userKey为null，未登录时，会将临时用户令牌传给前端
         map.put("userKey", cartVo.getUserKey());
+        map.put("item",cartVo.getItems());
 
         // 操作成功时返回给前端操作的用户标识，前端下次请求时带上，即能操作同一个购物车
         return Resp.ok(map);
