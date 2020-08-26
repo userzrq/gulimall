@@ -7,6 +7,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,6 +23,21 @@ public class CartController {
 
     @Autowired
     CartService cartService;
+
+
+
+
+    @ApiOperation("更新购物车商品数量")
+    @PostMapping("/update")
+    public Resp<CartVo> updateCart(@RequestParam(name = "skuId",required = true) Long skuId,
+                                   @RequestParam(name = "num",defaultValue = "1") Integer num,
+                                   String userKey,
+                                   @RequestHeader(name = "Authorization",required = false) String authorization){
+
+        CartVo cartVo = cartService.updateCart(skuId,num,userKey,authorization);
+
+        return Resp.ok(cartVo);
+    }
 
     /**
      * 以后购物车的所有操作，前端最多会携带两个令牌
