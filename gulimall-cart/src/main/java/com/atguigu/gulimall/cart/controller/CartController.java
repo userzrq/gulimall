@@ -25,16 +25,42 @@ public class CartController {
     CartService cartService;
 
 
+    /**
+     * @param skuId
+     * @param status        0代表不选中   1代表选中
+     * @param userKey
+     * @param authorization
+     * @return
+     *
+     * @RequestParam("skuIds") Long[] skuId, 必须的
+     * @RequestParam("status") Integer status,
+     * String userKey,从请求参数中取，不是必须的 == @RequestParam(value="skuIds",required=false)
+     *
+     * 某个请求参数有多个值封装数组：
+     * 传：skuId=1&skuId=2&skuId=3&skuId=4#
+     * 封：@RequestParam("skuId") Long[] skuId,
+     */
+    @ApiOperation("选中/不选中购物车")
+    @PostMapping("/check")
+    public Resp<CartVo> checkCart(@RequestParam("skuIds") Long[] skuId,
+                                  @RequestParam("status") Integer status,
+                                  String userKey,
+                                  @RequestHeader(name = "Authorization", required = false) String authorization) {
 
+
+        CartVo cartVo = cartService.checkCart(skuId, status, userKey, authorization);
+
+        return Resp.ok(cartVo);
+    }
 
     @ApiOperation("更新购物车商品数量")
     @PostMapping("/update")
-    public Resp<CartVo> updateCart(@RequestParam(name = "skuId",required = true) Long skuId,
-                                   @RequestParam(name = "num",defaultValue = "1") Integer num,
+    public Resp<CartVo> updateCart(@RequestParam(name = "skuId", required = true) Long skuId,
+                                   @RequestParam(name = "num", defaultValue = "1") Integer num,
                                    String userKey,
-                                   @RequestHeader(name = "Authorization",required = false) String authorization){
+                                   @RequestHeader(name = "Authorization", required = false) String authorization) {
 
-        CartVo cartVo = cartService.updateCart(skuId,num,userKey,authorization);
+        CartVo cartVo = cartService.updateCart(skuId, num, userKey, authorization);
 
         return Resp.ok(cartVo);
     }
@@ -78,7 +104,7 @@ public class CartController {
         Map<String, Object> map = new HashMap<>();
         // 当用户登录时，userKey为null，未登录时，会将临时用户令牌传给前端
         map.put("userKey", cartVo.getUserKey());
-        map.put("item",cartVo.getItems());
+        map.put("item", cartVo.getItems());
 
         // 操作成功时返回给前端操作的用户标识，前端下次请求时带上，即能操作同一个购物车
         return Resp.ok(map);

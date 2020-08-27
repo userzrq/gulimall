@@ -10,4 +10,7 @@ public interface CartService {
     CartVo addToCart(Long skuId, Integer num, String userKey, String authentication);
 
     CartVo updateCart(Long skuId, Integer num, String userKey, String authorization);
+
+    CartVo checkCart(Long[] skuId, Integer status, String userKey, String authorization);
+
 }

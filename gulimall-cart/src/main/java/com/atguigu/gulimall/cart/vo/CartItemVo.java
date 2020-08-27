@@ -42,6 +42,10 @@ public class CartItemVo {
 
     @Getter
     @Setter
+    private boolean check = true;   // 商品的选中状态
+
+    @Getter
+    @Setter
     private List<SkuFullReductionVo> reductions; // 商品满减信息
 
     @Getter

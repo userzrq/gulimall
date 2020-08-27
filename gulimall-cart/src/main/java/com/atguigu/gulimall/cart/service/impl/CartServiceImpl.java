@@ -141,6 +141,37 @@ public class CartServiceImpl implements CartService {
         return cartVo;
     }
 
+    @Override
+    public CartVo checkCart(Long[] skuId, Integer status, String userKey, String authorization) {
+        CartKey key = getKey(userKey, authorization);
+        String cartKey = key.getKey();
+        RMap<String, String> cart;
+
+        if (key.isLogin()) {
+            cart = redisson.getMap(Constant.CART_PREFIX + cartKey);
+        } else {
+            cart = redisson.getMap(Constant.TEMP_CART_PREFIX + cartKey);
+        }
+
+        if (skuId != null && skuId.length > 0) {
+            for (Long sku : skuId) {
+                String json = cart.get(sku.toString());
+                CartItemVo itemVo = JSON.parseObject(json, CartItemVo.class);
+                itemVo.setCheck(status == 0 ? false : true);
+                //更新购物车
+                cart.put(sku.toString(), JSON.toJSONString(itemVo));
+            }
+        }
+
+        //获取到这个购物车的所有记录
+        List<CartItemVo> cartItems = getCartItems(cartKey);
+
+        CartVo cartVo = new CartVo();
+        cartVo.setItems(cartItems);
+
+        return cartVo;
+    }
+
 
     /**
      * 返回一个购物车后缀标识，跟前缀拼接后是一个 redis 的 key
