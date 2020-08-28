@@ -3,11 +3,13 @@ package com.atguigu.gulimall.cart.service;
 
 import com.atguigu.gulimall.cart.vo.CartVo;
 
+import java.util.concurrent.ExecutionException;
+
 public interface CartService {
 
-    CartVo getCart(String userKey, String authentication);
+    CartVo getCart(String userKey, String authentication) throws ExecutionException, InterruptedException;
 
-    CartVo addToCart(Long skuId, Integer num, String userKey, String authentication);
+    CartVo addToCart(Long skuId, Integer num, String userKey, String authentication) throws ExecutionException, InterruptedException;
 
     CartVo updateCart(Long skuId, Integer num, String userKey, String authorization);
 

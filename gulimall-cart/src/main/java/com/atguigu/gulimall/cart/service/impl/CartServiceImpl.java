@@ -1,10 +1,14 @@
 package com.atguigu.gulimall.cart.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.atguigu.gulimall.cart.feign.SkuCouponReductionFeignService;
 import com.atguigu.gulimall.cart.feign.SkuFeignService;
 import com.atguigu.gulimall.cart.service.CartService;
+import com.atguigu.gulimall.cart.to.SkuCouponTo;
 import com.atguigu.gulimall.cart.vo.CartItemVo;
 import com.atguigu.gulimall.cart.vo.CartVo;
+import com.atguigu.gulimall.cart.vo.SkuCouponVo;
+import com.atguigu.gulimall.cart.vo.SkuFullReductionVo;
 import com.atguigu.gulimall.commons.bean.Constant;
 import com.atguigu.gulimall.commons.to.SkuInfoVo;
 import com.atguigu.gulimall.commons.utils.GuliJwtUtils;
@@ -14,6 +18,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -25,6 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -39,6 +47,14 @@ public class CartServiceImpl implements CartService {
     @Autowired
     SkuFeignService skuFeignService;
 
+    @Autowired
+    SkuCouponReductionFeignService skuCouponReductionFeignService;
+
+    @Autowired
+    @Qualifier("mainExecutor")
+    ThreadPoolExecutor executor;
+
+
     /**
      * 获取购物车
      *
@@ -47,7 +63,7 @@ public class CartServiceImpl implements CartService {
      * @return
      */
     @Override
-    public CartVo getCart(String userKey, String authentication) {
+    public CartVo getCart(String userKey, String authentication) throws ExecutionException, InterruptedException {
         CartVo cartVo = new CartVo();
         String redisKey;
 
@@ -76,7 +92,7 @@ public class CartServiceImpl implements CartService {
      * @param authentication 封装了userId的在线购物车token
      */
     @Override
-    public CartVo addToCart(Long skuId, Integer num, String userKey, String authentication) {
+    public CartVo addToCart(Long skuId, Integer num, String userKey, String authentication) throws ExecutionException, InterruptedException {
         CartKey key = getKey(userKey, authentication);
         String cartKey = key.getKey();
         String fullCartKey = "";
@@ -225,7 +241,7 @@ public class CartServiceImpl implements CartService {
      * @param userKey
      * @param userId
      */
-    private void mergeCart(String userKey, Long userId) {
+    private void mergeCart(String userKey, Long userId) throws ExecutionException, InterruptedException {
 
         RMap<String, String> unloginMap = redisson.getMap(Constant.TEMP_CART_PREFIX + userKey);
         Collection<String> values = unloginMap.values();
@@ -249,7 +265,7 @@ public class CartServiceImpl implements CartService {
      * @param cartKey redis中存放的最终的购物车的key值
      * @return
      */
-    private CartItemVo addCartItemVo(Long skuId, Integer num, String cartKey) {
+    private CartItemVo addCartItemVo(Long skuId, Integer num, String cartKey) throws ExecutionException, InterruptedException {
         // 方法要返回的对象：向购物车中新增的商品
         CartItemVo vo = null;
         RMap<String, String> loginMap = redisson.getMap(cartKey);
@@ -263,15 +279,44 @@ public class CartServiceImpl implements CartService {
             loginMap.put(itemVo.getSkuId().toString(), JSON.toJSONString(itemVo));
             vo = itemVo;
         } else {
-            // 远程调用商品详情服务查询商品的详细信息
-            SkuInfoVo skuInfoVo = skuFeignService.getSKuInfoForCart(skuId).getData();
             CartItemVo itemVo = new CartItemVo();
-            // 封装为购物车中的购物项
-            BeanUtils.copyProperties(skuInfoVo, itemVo);
-            itemVo.setNum(num);
 
-            // TODO 商品优惠信息和商品满减信息也要远程查
 
+            // 利用 3个CompletableFuture异步任务 将任务提交至线程池处理
+            CompletableFuture<Void> itemInfoAsync = CompletableFuture.runAsync(() -> {
+                // 1.远程调用商品详情服务查询商品的详细信息
+                SkuInfoVo skuInfoVo = skuFeignService.getSKuInfoForCart(skuId).getData();
+
+                // 2.封装为购物车中的购物项
+                BeanUtils.copyProperties(skuInfoVo, itemVo);
+                itemVo.setNum(num);
+            }, executor);
+
+
+            // 3.TODO 商品优惠信息和商品满减信息也要远程查
+            CompletableFuture<Void> couponAsync = CompletableFuture.runAsync(() -> {
+                List<SkuCouponTo> couponTos = skuCouponReductionFeignService.getCoupons(skuId).getData();
+                List<SkuCouponVo> couponVos = new ArrayList<>();
+                if (!Objects.isNull(couponTos) && couponTos.size() > 0) {
+                    for (SkuCouponTo couponTo : couponTos) {
+                        SkuCouponVo skuCouponVo = new SkuCouponVo();
+                        BeanUtils.copyProperties(couponTo, skuCouponVo);
+                        couponVos.add(skuCouponVo);
+                    }
+                }
+                itemVo.setCoupons(couponVos);
+            }, executor);
+
+
+            CompletableFuture<Void> reductionAsync = CompletableFuture.runAsync(() -> {
+                List<SkuFullReductionVo> reductionVos = skuCouponReductionFeignService.getReduction(skuId).getData();
+                if (!Objects.isNull(reductionVos) && reductionVos.size() > 0) {
+                    itemVo.setReductions(reductionVos);
+                }
+            }, executor);
+
+            // 等到三个异步任务都结束时，才能对itemVo进行保存
+            CompletableFuture.allOf(itemInfoAsync, couponAsync, reductionAsync).get();
             // 保存到redis中,再次操作redis
             loginMap.put(skuId.toString(), JSON.toJSONString(itemVo));
             vo = itemVo;

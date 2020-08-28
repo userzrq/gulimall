@@ -6,6 +6,7 @@ import com.atguigu.gulimall.cart.vo.CartVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Api(tags = "购物车系统")
 @RestController
@@ -24,6 +27,26 @@ public class CartController {
     @Autowired
     CartService cartService;
 
+    @Autowired
+    @Qualifier("otherExecutor")
+    ThreadPoolExecutor executor;
+
+    /**
+     * 当内存不够时，通过接口销毁线程池，释放资源
+     *
+     * @return
+     */
+    @GetMapping("/stop/other")
+    public Resp<Object> closeUnnecessaryThreadPool() {
+        // shutdown 和 shutdownnow的区别
+        executor.shutdown();
+
+        Map<String, Object> map = new HashMap();
+        map.put("closeQueue", executor.getQueue().size());
+        map.put("waitActiveCount", executor.getActiveCount());
+        return Resp.ok(map);
+    }
+
 
     /**
      * @param skuId
@@ -31,14 +54,15 @@ public class CartController {
      * @param userKey
      * @param authorization
      * @return
-     *
      * @RequestParam("skuIds") Long[] skuId, 必须的
      * @RequestParam("status") Integer status,
      * String userKey,从请求参数中取，不是必须的 == @RequestParam(value="skuIds",required=false)
-     *
+     * <p>
      * 某个请求参数有多个值封装数组：
      * 传：skuId=1&skuId=2&skuId=3&skuId=4#
      * 封：@RequestParam("skuId") Long[] skuId,
+     * <p>
+     * 选中不选中会影响总价
      */
     @ApiOperation("选中/不选中购物车")
     @PostMapping("/check")
@@ -75,11 +99,11 @@ public class CartController {
     @ApiOperation("获取购物车中的数据")
     @GetMapping("/list")
     public Resp<CartVo> getCart(String userKey,
-                                @RequestHeader(name = "Authentication", required = false) String authentication) {
+                                @RequestHeader(name = "Authentication", required = false) String authentication) throws ExecutionException, InterruptedException {
 
         CartVo cartVo = cartService.getCart(userKey, authentication);
 
-        return null;
+        return Resp.ok(cartVo);
     }
 
 
@@ -95,7 +119,7 @@ public class CartController {
     public Resp<Object> addToCart(@RequestParam(name = "skuId", required = true) Long skuId,
                                   @RequestParam(name = "num", defaultValue = "1") Integer num,
                                   String userKey,
-                                  @RequestHeader(name = "Authentication", required = false) String authentication) {
+                                  @RequestHeader(name = "Authentication", required = false) String authentication) throws ExecutionException, InterruptedException {
 
         // authentication = request.getHeader("Authentication");  Authentication header的值直接由注解获取
 

@@ -45,6 +45,9 @@ public class CartVo {
         Integer num = 0;
         if (items != null && items.size() > 0) {
             for (CartItemVo item : items) {
+                if (!item.isCheck()) {
+                    continue;
+                }
                 num += item.getNum();
             }
         }
@@ -56,12 +59,16 @@ public class CartVo {
         if (items != null && items.size() > 0) {
             for (CartItemVo item : items) {
                 // 累加每个购物项的总价格
+                if (!item.isCheck()) {
+                    continue;
+                }
                 BigDecimal totalPrice = item.getTotalPrice();
                 total = total.add(totalPrice);
             }
         }
         return total;
     }
+
 
     /**
      * 能优惠/促销的金额
@@ -74,7 +81,9 @@ public class CartVo {
         // 拿到每一项的满减信息和优惠信息
         if (items != null && items.size() > 0) {
             for (CartItemVo item : items) {
-
+                if (!item.isCheck()) {
+                    continue;
+                }
                 List<SkuFullReductionVo> reductions = item.getReductions();
                 if (reductions != null && reductions.size() > 0) {
                     for (SkuFullReductionVo reduction : reductions) {
@@ -100,7 +109,6 @@ public class CartVo {
                         }
                     }
                 }
-
                 // 计算优惠券可以减掉的金额
                 List<SkuCouponVo> coupons = item.getCoupons();
 
@@ -114,6 +122,7 @@ public class CartVo {
         }
         return reduce;
     }
+
 
     /**
      * 促销后的价格
