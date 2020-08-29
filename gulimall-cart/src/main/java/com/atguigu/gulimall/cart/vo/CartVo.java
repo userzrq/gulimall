@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 整个购物车
@@ -85,19 +87,47 @@ public class CartVo {
                     continue;
                 }
                 List<SkuFullReductionVo> reductions = item.getReductions();
+
+                LinkedBlockingDeque<SkuFullReductionVo> fullReductionLinkedBlockingDeque = new LinkedBlockingDeque<>();
+
+                for (SkuFullReductionVo reduction : reductions) {
+                    if (reduction.getAddOther() == 1) {   // 1 可以叠加其他优惠
+                        fullReductionLinkedBlockingDeque.addFirst(reduction);   // 从队列的头部插入可叠加优惠
+                    } else {
+                        // 不能叠加其他优惠
+                        fullReductionLinkedBlockingDeque.addLast(reduction);    // 从队列的尾部插入不可叠加优惠
+                    }
+                }
+
+
                 if (reductions != null && reductions.size() > 0) {
-                    for (SkuFullReductionVo reduction : reductions) {
+                    for (SkuFullReductionVo reduction : fullReductionLinkedBlockingDeque) {
+
+//                    }
+//                    for (SkuFullReductionVo reduction : reductions) {
                         Integer type = reduction.getType();
-                        // 0-打折 1-满减
+                        Integer addOther = reduction.getAddOther();
+
+                        // type: 0-打折 1-满减
                         if (type == 0) {
                             Integer fullCount = reduction.getFullCount();// 满几件
-                            Integer discount = reduction.getDiscount();// 打几折
+                            BigDecimal discount = reduction.getDiscount();// 打几折
 
                             if (item.getNum() >= fullCount) {
-                                BigDecimal reduceTotalPrice = item.getTotalPrice().multiply(new BigDecimal("0." + discount)); //折后价
+                                // 折后价
+                                // 如果打几折的参数 discount 为整型的话
+                                // 100/100 = 1 + "." + 100 %100 = 1.0
+                                // 98/100  = 0 + "." + 98 % 100 = 0.98
+                                BigDecimal reduceTotalPrice = item.getTotalPrice().multiply(new BigDecimal("0." + discount.divide(new BigDecimal("100.00")))); //折后价
+                                // 折后价与原价的差价
                                 BigDecimal reducePrice = item.getTotalPrice().subtract(reduceTotalPrice); // 折后价与原价的差价
 
-                                reduce = reduce.add(reducePrice);
+                                // 如果不打折，折后价会计算为0
+                                if (reduceTotalPrice.compareTo(new BigDecimal("0")) == 0) {
+                                    reduce = new BigDecimal("0");
+                                } else {
+                                    reduce = reduce.add(reducePrice);
+                                }
                             }
                         } else if (type == 1) { // 如果是满减
                             BigDecimal fullPrice = reduction.getFullPrice(); //满多少
@@ -106,6 +136,9 @@ public class CartVo {
                             if (item.getTotalPrice().subtract(fullPrice).compareTo(new BigDecimal("0.0")) >= 0) {
                                 reduce = reduce.add(reducePrice);
                             }
+                        }
+                        if (addOther == 0) { // 叠到的永远是队列从头到尾第一个碰到的不能叠加的为止
+                            break;
                         }
                     }
                 }

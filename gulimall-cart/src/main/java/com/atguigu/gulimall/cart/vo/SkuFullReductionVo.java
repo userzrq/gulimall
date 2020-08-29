@@ -27,7 +27,7 @@ public class SkuFullReductionVo {
      * 满 fullCount 件，打 discount 折
      */
     private Integer fullCount;
-    private Integer discount;
+    private BigDecimal discount;
 
 
     /**
