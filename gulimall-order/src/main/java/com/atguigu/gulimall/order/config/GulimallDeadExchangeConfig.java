@@ -79,12 +79,12 @@ public class GulimallDeadExchangeConfig {
      *
      * @return
      */
-    @Bean("deadOrderQueue")
+    @Bean("closeOrderQueue")
     public Queue deadOrderQueue() {
         /**
          * String name, boolean durable, boolean exclusive, boolean autoDelete, @Nullable Map<String, Object> arguments
          */
-        return new Queue("deadOrderQueue", true, false, false, null);
+        return new Queue("closeOrderQueue", true, false, false, null);
     }
 
     @Bean("deadBinding")
@@ -92,6 +92,6 @@ public class GulimallDeadExchangeConfig {
         /**
          * String destination, DestinationType destinationType, String exchange, String routingKey, @Nullable Map<String, Object> arguments
          */
-        return new Binding("deadOrderQueue", Binding.DestinationType.QUEUE, "orderDeadExchange", "dead.order", null);
+        return new Binding("closeOrderQueue", Binding.DestinationType.QUEUE, "orderDeadExchange", "dead.order", null);
     }
 }
