@@ -10,6 +10,7 @@ import com.atguigu.gulimall.cart.vo.CartVo;
 import com.atguigu.gulimall.cart.vo.SkuCouponVo;
 import com.atguigu.gulimall.cart.vo.SkuFullReductionVo;
 import com.atguigu.gulimall.commons.bean.Constant;
+import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.commons.to.SkuInfoVo;
 import com.atguigu.gulimall.commons.utils.GuliJwtUtils;
 
@@ -23,6 +24,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,7 +68,6 @@ public class CartServiceImpl implements CartService {
     public CartVo getCart(String userKey, String authentication) throws ExecutionException, InterruptedException {
         CartVo cartVo = new CartVo();
         String redisKey;
-
         CartKey cartKey = getKey(userKey, authentication);
         // 设置在redis中保存的 用户的购物车的key
         if (!cartKey.isLogin()) {
@@ -79,6 +80,35 @@ public class CartServiceImpl implements CartService {
 
         List<CartItemVo> cartItems = getCartItems(redisKey);
         cartVo.setItems(cartItems);
+
+        // 会触发线程去修改购物项的实时价格，会慢慢修改，但不会在本次及时返回
+        CompletableFuture.runAsync(() -> {
+            cartItems.forEach((item) -> {
+                // 启动线程在后台更新价格
+                // 远程批量查询接口，返回购物车中所有购物项的sku价格
+                // 根据用户的cartKey修改用户的购物车
+
+                String cache = redisTemplate.opsForValue().get(Constant.CACHE_SKU_INFO + item.getSkuId());
+
+                if (StringUtils.isEmpty(cache)) {
+
+                } else {
+                    // 是从数据库缓存来的新数据
+                    SkuInfoVo itemVo = JSON.parseObject(cache, SkuInfoVo.class);
+                    // 根据缓存的商品信息改掉购物车中的信息
+                    // item只是接口的返回内容，不是购物车对象
+                    // item.setPrice(itemVo.getPrice());
+                    RMap<String, String> rMap = redisson.getMap(Constant.CART_PREFIX + cartKey.getKey());
+                    String s = rMap.get(item.getSkuId().toString());
+                    CartItemVo cartItemVo = JSON.parseObject(s, CartItemVo.class);
+                    cartItemVo.setPrice(itemVo.getPrice());
+
+                    // 更新rMap中的hash
+                    rMap.put(item.getSkuId().toString(), JSON.toJSONString(cartItemVo));
+                }
+            });
+        }, executor);
+
         return cartVo;
     }
 
@@ -100,21 +130,22 @@ public class CartServiceImpl implements CartService {
         RMap<Object, Object> map;
 
         if (key.isLogin() && !StringUtils.isEmpty(userKey)) {
-            map = redisson.getMap(Constant.CART_PREFIX + cartKey);    // 购物车的第一层hash
+            // 购物车的第一层hash
+            map = redisson.getMap(Constant.CART_PREFIX + cartKey);
 
             fullCartKey = Constant.CART_PREFIX + cartKey;
             // 登录状态，并且临时token不为空，需要合并操作时
             // 能进if判断，说明cartKey = userId
             mergeCart(userKey, Long.parseLong(cartKey));
         } else {
-            map = redisson.getMap(Constant.TEMP_CART_PREFIX + userKey);    // 购物车的第一层hash，未登录情况下,cartKey = key.getKey() 和 userKey 的值是一样的
+            // 购物车的第一层hash，未登录情况下,cartKey = key.getKey() 和 userKey 的值是一样的
+            map = redisson.getMap(Constant.TEMP_CART_PREFIX + userKey);
 
             fullCartKey = Constant.TEMP_CART_PREFIX + cartKey;
         }
 
         // 添加购物车
         CartItemVo vo = addCartItemVo(skuId, num, fullCartKey);
-
         CartVo cartVo = new CartVo();
         if (!key.isLogin()) {
             // 没登录，每次都将临时购物车的userKey返回给前端,前端接受到就拿到并覆盖之前的userKey
@@ -272,24 +303,42 @@ public class CartServiceImpl implements CartService {
 
         String cartItemVoJson = loginMap.get(skuId.toString());
 
+        // 登录购物车中已经存在某款商品
         if (!StringUtils.isEmpty(cartItemVoJson)) {
-            // 登录购物车中有
-            CartItemVo itemVo = JSON.parseObject(cartItemVoJson, CartItemVo.class);
-            itemVo.setNum(itemVo.getNum() + num);
-            loginMap.put(itemVo.getSkuId().toString(), JSON.toJSONString(itemVo));
-            vo = itemVo;
+
+            // 异步对购物车中数据进行修改（runAsync没有返回值）
+            CompletableFuture<CartItemVo> future = CompletableFuture.supplyAsync(() -> {
+                CartItemVo itemVo = JSON.parseObject(cartItemVoJson, CartItemVo.class);
+                itemVo.setNum(itemVo.getNum() + num);
+                /**
+                 * 当购物车中的购物项的价格 与 商品的实时价格不同时，远程查询其实时价格
+                 */
+                Resp<SkuInfoVo> sKuInfoForCart = skuFeignService.getSKuInfoForCart(skuId);
+                BigDecimal price = sKuInfoForCart.getData().getPrice();
+                // 将实时价格重新覆盖
+                itemVo.setPrice(price);
+                loginMap.put(itemVo.getSkuId().toString(), JSON.toJSONString(itemVo));
+
+                return itemVo;
+            }, executor);
+
+            // CartItemVo itemVo = future.get();
+            vo = future.get();
+
         } else {
+            /**
+             * 当购物车中第一次加入某款商品时，此时存在“添加到购物车中的价格”，用于后期比较
+             */
             CartItemVo itemVo = new CartItemVo();
-
-
-            // 利用 3个CompletableFuture异步任务 将任务提交至线程池处理
+            // 利用 3个CompletableFuture异步任务 将任务提交至线程池处理（ThreadPoolExecutor）
             CompletableFuture<Void> itemInfoAsync = CompletableFuture.runAsync(() -> {
                 // 1.远程调用商品详情服务查询商品的详细信息
                 SkuInfoVo skuInfoVo = skuFeignService.getSKuInfoForCart(skuId).getData();
-
                 // 2.封装为购物车中的购物项
                 BeanUtils.copyProperties(skuInfoVo, itemVo);
                 itemVo.setNum(num);
+                // 首次添加到购物车中的价格
+                itemVo.setFirstPrice(skuInfoVo.getPrice());
             }, executor);
 
 
