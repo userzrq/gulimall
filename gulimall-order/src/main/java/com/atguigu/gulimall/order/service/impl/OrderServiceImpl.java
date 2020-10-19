@@ -39,6 +39,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setOrderId(IdWorker.getId());
         order.setDesc("商品xxxxxx-xxxxx");
+        // 0代表订单的未支付状态
         order.setStatus(0);
 
         // 订单创建完，将订单信息发送给MQ
@@ -46,7 +47,8 @@ public class OrderServiceImpl implements OrderService {
          rabbitTemplate.convertAndSend("orderCreateExchange","create.order",order);
 
         /**
-         * 定时线程池执行，但是没有持久化，MQ的优势在于不依赖于系统的持久化
+         * 定时线程池执行也可以执行关单流程，但是没有持久化，订单数据与随着系统的生命周期结束而结束，MQ的优势在于不依赖于系统的持久化
+         * 在延迟30s后执行任务
          */
         executorService.schedule(()->{
             System.out.println(order+"已经过期,正准备查询数据库，决定是否关单");
@@ -57,7 +59,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 监听最后的订单队列closeOrderQueue
+     * 监听最后接收死信交换机发来信息的队列closeOrderQueue,消息被消费后删除
      */
     @RabbitListener(queues = "closeOrderQueue")
     public void closeOrder(Order order, Channel channel, Message message) throws IOException {

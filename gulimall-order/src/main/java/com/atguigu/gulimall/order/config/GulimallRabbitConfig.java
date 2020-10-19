@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
  * <p>
  * <p>
  * 1.利用java API给RabbitMQ创建 exchange, queue, binding
- * 方式 1)、利用AmqpAdmin.declareXXX方法来创建(queue, binding, exchange...)
+ * 方式 1)、利用AmqpAdmin.declareXXX方法来创建(queue, binding, exchange...)，创建队列，交换机，及两者之间的关系（绑定）
  * amqpAdmin.declareQueue() .declareBinding() .declareExchange()
  * <p>
  * <p>
@@ -28,7 +28,8 @@ import org.springframework.context.annotation.Configuration;
  * <p>
  * 2.如何监听消息队列中的消息
  * @EnableRabbit
- * @RabbitListener(queues = "myqueue") 指定监听的队列
+ * @RabbitListener(queues = "myqueue") 指定监听的队列,刺激创建连接（不然在mq中不会创建对象）
+ * <p>
  * <p>
  * 1)发消息要将消息序列化后发出去
  * 2)收消息要将消息反序列化进来
@@ -41,7 +42,7 @@ import org.springframework.context.annotation.Configuration;
 public class GulimallRabbitConfig {
 
     /**
-     * SpringBoot会自动给RabbitMQ中创建这个交换机/队列/绑定关系
+     * 通过@Bean注解,将组件放到容器中,SpringBoot会自动给RabbitMQ中创建这个交换机/队列/绑定关系
      * <p>
      * 1)、去RabbitMQ中查看有没有当前名字的交换机/队列/绑定关系，如果没有就创建
      *
@@ -53,6 +54,7 @@ public class GulimallRabbitConfig {
          * String name, boolean durable, boolean autoDelete, Map<String, Object> arguments
          */
         FanoutExchange fanoutExchange = new FanoutExchange("my-guli-fanout-exchange", true, false, null);
+        System.out.println("启动程序后,就会伴随Spring容器的初始化,自动创建rabbitMq中的组件");
         return fanoutExchange;
     }
 
@@ -77,6 +79,11 @@ public class GulimallRabbitConfig {
         );
     }
 
+
+    /**
+     * 设置消息队列全局使用的转化器
+     * @return
+     */
     @Bean
     public MessageConverter setConverter() {
         return new Jackson2JsonMessageConverter();
