@@ -56,7 +56,7 @@ public class GuliJwtUtils {
     }
 
     /**
-     * 获得jwt负载中的数据
+     * 获得jwt负载中的数据，同时检查了jwt的合法性
      *
      * @param jwt
      * @return

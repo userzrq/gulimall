@@ -11,6 +11,11 @@ public class Constant {
      */
     public static final String CACHE_CATELOG = "cache:catelog:";
 
+    /**
+     * 购物车信息缓存，将购物车购物项详情信息缓存到redis
+     */
+    public static final String CACHE_SKU_INFO = "cache:skuinfo:";
+
     public static final String LOGIN_USER_PREFIX = "login:user:";
 
     /**
@@ -32,4 +37,14 @@ public class Constant {
      * redis 临时购物车过期时间，30天
      */
     public static final Long TEMP_CART_TIMEOUT = 60 * 24 * 30L;
+
+    /**
+     * 订单Token，防重复提交
+     */
+    public static final String CART_TOKEN = "cart:token:";
+
+    /**
+     * 订单Token过期时间，30分钟过期
+     */
+    public static final Long CART_TOKEN_TIMEOUT = 30L;
 }
