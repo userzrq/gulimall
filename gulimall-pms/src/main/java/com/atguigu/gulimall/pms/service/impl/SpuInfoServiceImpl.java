@@ -343,7 +343,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             Long attrId = item.getAttrId();
             //拿到真正的值
             spu_id.forEach(s -> {
-                if (item.getAttrId() == s.getAttrId()) {
+                if (item.getAttrId().equals(s.getAttrId())) {
 
                     // s为当前属性
                     EsSkuAttributeValue value = new EsSkuAttributeValue();
@@ -440,7 +440,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         vo.setSort(0);
         // 保存库存
         skuStockVos.forEach(item -> {
-            if (item.getSkuId() == skuInfoEntity.getSkuId()) {
+            if (item.getSkuId().equals(skuInfoEntity.getSkuId())) {
                 vo.setStock(item.getStock());
             }
         });

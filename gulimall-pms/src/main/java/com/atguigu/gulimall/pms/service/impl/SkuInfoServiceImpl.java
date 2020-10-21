@@ -1,6 +1,8 @@
 package com.atguigu.gulimall.pms.service.impl;
 
+import com.atguigu.gulimall.commons.bean.Constant;
 import com.atguigu.gulimall.commons.to.SkuInfoVo;
+import com.atguigu.gulimall.pms.annotation.GuliCache;
 import com.atguigu.gulimall.pms.dao.SkuSaleAttrValueDao;
 import com.atguigu.gulimall.pms.entity.SkuSaleAttrValueEntity;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -40,7 +43,12 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         return new PageVo(page);
     }
 
-
+    /**
+     * 先查缓存，缓存命中则直接返回，缓存中没有则去数据库中查
+     * @param skuId
+     * @return
+     */
+    @GuliCache(prefix = Constant.CACHE_SKU_INFO,timeout = 1L,TIME_UNIT = TimeUnit.DAYS)
     @Override
     public SkuInfoVo getSkuVo(Long skuId) {
         SkuInfoEntity entity = skuInfoDao.selectById(skuId);

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
@@ -48,7 +49,8 @@ public class GuliCacheAspect {
         String prefix = "";
         try {
             log.info("缓存切面介入工作...前置通知");
-            Object[] args = joinPoint.getArgs(); //获取目标方法的所有参数值
+            //获取目标方法的所有参数值
+            Object[] args = joinPoint.getArgs();
 
             // 拿到注解的值
             // 方法一
@@ -75,7 +77,7 @@ public class GuliCacheAspect {
             if (args != null) {
                 for (Object arg : args) {
                     // 基本数据类型直接拼，对象可以用hashcode,拼的是参数中的id值
-                    prefix += ":" + arg;
+                    prefix += arg.toString();
                 }
             }
             // spring.redisTemplate在高并发下就完蛋
@@ -90,7 +92,10 @@ public class GuliCacheAspect {
                 if (cache == null) {
                     log.info("缓存没命中....查询数据库");
                     result = joinPoint.proceed(args);
-                    redisTemplate.opsForValue().set(prefix, JSON.toJSONString(result));
+
+                    long timeout = guliCache.timeout();
+                    TimeUnit timeUnit = guliCache.TIME_UNIT();
+                    redisTemplate.opsForValue().set(prefix, JSON.toJSONString(result), timeout, timeUnit);
                     log.info("缓存切面介入工作...方法执行完成,返回通知");
                     return result;
                 } else {
@@ -103,7 +108,8 @@ public class GuliCacheAspect {
             clearCurrentCache(prefix);
         } finally {
             log.info("缓存切面介入工作...后置通知");
-            if(lock.isLocked()){    // 如果锁已被锁定了，则需要解锁
+            // 如果锁已被锁定了，则需要解锁
+            if (lock.isLocked()) {
                 lock.unlock();
             }
 

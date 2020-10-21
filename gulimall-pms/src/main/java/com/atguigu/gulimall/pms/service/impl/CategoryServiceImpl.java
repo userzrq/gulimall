@@ -44,7 +44,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     @Override
     public List<CategoryEntity> getCategoryByLevel(Integer level) {
         QueryWrapper<CategoryEntity> wrapper = new QueryWrapper<>();
-        if (level != 0) wrapper.eq("cat_level", level);
+        if (level != 0) {
+            wrapper.eq("cat_level", level);
+        }
         return baseMapper.selectList(wrapper);
     }
 
