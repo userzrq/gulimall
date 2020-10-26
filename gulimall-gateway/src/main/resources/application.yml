@@ -36,6 +36,12 @@ spring:
             - Path=/cart/**,/api/cart/**
           filters:
             - RewritePath=/api/(?<segment>.*),/$\{segment}
+        - id: gulimall_order_route
+          uri: lb://gulimall-order
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - RewritePath=/api/(?<segment>.*),/$\{segment}
 
 
 #      globalcors:
