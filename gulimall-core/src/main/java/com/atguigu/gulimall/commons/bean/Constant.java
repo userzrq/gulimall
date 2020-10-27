@@ -41,10 +41,15 @@ public class Constant {
     /**
      * 订单Token，防重复提交
      */
-    public static final String CART_TOKEN = "cart:token:";
+    public static final String ORDER_TOKEN = "cart:token:";
 
     /**
      * 订单Token过期时间，30分钟过期
      */
-    public static final Long CART_TOKEN_TIMEOUT = 30L;
+    public static final Long ORDER_TOKEN_TIMEOUT = 30L;
+
+    /**
+     * 商品库存分布式锁前缀 stock:lock: + skuId 标识每个商品的库存
+     */
+    public static final String STOCK_LOCKED = "stock:lock:";
 }
