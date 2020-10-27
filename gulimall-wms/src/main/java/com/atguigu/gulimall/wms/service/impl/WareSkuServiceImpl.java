@@ -1,7 +1,18 @@
 package com.atguigu.gulimall.wms.service.impl;
 
+import com.atguigu.gulimall.wms.vo.LockStockVo;
+import com.atguigu.gulimall.wms.vo.SkuLock;
+import com.atguigu.gulimall.wms.vo.SkuLockVo;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.Map;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -14,8 +25,15 @@ import com.atguigu.gulimall.wms.entity.WareSkuEntity;
 import com.atguigu.gulimall.wms.service.WareSkuService;
 
 
+@Slf4j
 @Service("wareSkuService")
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
+
+    @Autowired
+    RedissonClient redisson;
+
+    @Autowired
+    private WareSkuDao wareSkuDao;
 
     @Override
     public PageVo queryPage(QueryCondition params) {
@@ -25,6 +43,89 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         );
 
         return new PageVo(page);
+    }
+
+    /**
+     * @param skuLockVos 购物车中被勾选的，需要购买->查库存的skuLockVo(skuId,num)集合
+     * @return
+     */
+    @Override
+    public LockStockVo lockAndCheckStock(List<SkuLockVo> skuLockVos) throws ExecutionException, InterruptedException {
+
+        List<SkuLock> skuLocks = new ArrayList<>();
+        List<CompletableFuture> futures = new ArrayList<>();
+        /**
+         * ForkJoinPool
+         * 核心：
+         * 1.基于分布式锁; stock:locked:1  stock:locked:10  stock:locked:100
+         * 2.基于数据库的乐观锁（但分布式项目一个服务会复制多份，每个进行修改的数据库也都不相同(双主热备)，各自维护各自表中的version字段就会出问题）
+         *      update wms_ware_sku set stock_locked=stock_locked+5(5是原来的值),version = version + 1 where sku_id = ? and version = ?
+         *      (乐观锁：要带对版本才能执行，版本没带对时，会快速返回失败)
+         *
+         * 要控制锁的粒度，不能喝对所有商品一概加锁
+         * 粒度越细，并发越高
+         */
+        if (skuLockVos != null && skuLockVos.size() > 0) {
+            for (SkuLockVo skuLockVo : skuLockVos) {
+                CompletableFuture<Void> async = CompletableFuture.runAsync(() -> {
+                    SkuLock skuLock = lockSku(skuLockVo);
+                    skuLocks.add(skuLock);
+                });
+                futures.add(async);
+            }
+            log.info("需要锁定库存的商品有【{}】种", futures.size());
+        }
+        LockStockVo lockStockVo = new LockStockVo();
+        lockStockVo.setLocks(skuLocks);
+
+        /**
+         * 待异步线程全部完成后+
+         */
+        CompletableFuture[] completableFutures = (CompletableFuture[]) futures.toArray();
+        CompletableFuture<Void> future = CompletableFuture.allOf(completableFutures);
+        future.get();
+
+        return lockStockVo;
+    }
+
+
+    /**
+     * 锁库存
+     *
+     * @param skuLockVo
+     * @return
+     */
+    public SkuLock lockSku(SkuLockVo skuLockVo) {
+        SkuLock skuLock = new SkuLock();
+        // 1.检查总库存够不够锁的，不够就没必要锁了（先判断总量够不够，然后再找具体仓库）
+        Long count = wareSkuDao.ckeckStock(skuLockVo);
+
+        // 在总量满足的前提下
+        if (count >= skuLockVo.getNum()) {
+            // 寻找能够满足减库存的仓库（感觉可以用递归，因为可能一个仓库的总量不够减，但是总量是够的，总量够了，然后按可锁量排序，从多减到少）
+            List<WareSkuEntity> wareSkuEntities = wareSkuDao.getAllWareCanLocked(skuLockVo);
+            if (wareSkuEntities != null && wareSkuEntities.size() > 0) {
+                WareSkuEntity wareSkuEntity = wareSkuEntities.get(0);
+                // 更新sql，返回影响行数
+                long i = wareSkuDao.lockSku(skuLockVo, wareSkuEntity.getWareId());
+                if (i > 0) {
+                    skuLock.setSuccess(true);
+                    skuLock.setSkuId(skuLockVo.getSkuId());
+                    skuLock.setWareId(wareSkuEntity.getWareId());
+                    // 锁住的数量，传进来的都锁住了
+                    skuLock.setLocked(skuLockVo.getNum());
+                }
+            } else {
+
+            }
+        } else {
+            skuLock.setLocked(0);
+            skuLock.setSkuId(skuLock.getSkuId());
+            skuLock.setSuccess(false);
+        }
+        return skuLock;
+
+
     }
 
 }

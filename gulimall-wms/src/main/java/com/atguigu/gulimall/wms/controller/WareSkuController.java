@@ -4,15 +4,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 
 import com.atguigu.gulimall.commons.bean.PageVo;
 import com.atguigu.gulimall.commons.bean.QueryCondition;
 import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.commons.to.SkuStockVo;
+import com.atguigu.gulimall.wms.vo.LockStockVo;
+import com.atguigu.gulimall.wms.vo.SkuLockVo;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,8 +37,24 @@ import com.atguigu.gulimall.wms.service.WareSkuService;
 @RestController
 @RequestMapping("wms/waresku")
 public class WareSkuController {
+
     @Autowired
     private WareSkuService wareSkuService;
+
+    /**
+     * log: xxx商品库存锁成功了
+     * log: xxx商品库存锁失败了
+     *
+     * @param skuIds
+     * @return
+     */
+    @ApiOperation("验库存并锁库存")
+    @GetMapping("/checkAndLock")
+    public Resp<LockStockVo> lockAndCheckStock(@RequestBody List<SkuLockVo> skuIds) throws ExecutionException, InterruptedException {
+        LockStockVo lockStockVo = wareSkuService.lockAndCheckStock(skuIds);
+        return Resp.ok(lockStockVo);
+    }
+
 
     //wms/waresku/skus
     @PostMapping("/skus")
@@ -45,7 +65,7 @@ public class WareSkuController {
         ArrayList<SkuStockVo> skuStockVos = new ArrayList<>();
         list.forEach(wareSkuEntity -> {
             SkuStockVo skuStockVo = new SkuStockVo();
-            BeanUtils.copyProperties(wareSkuEntity,skuStockVo);
+            BeanUtils.copyProperties(wareSkuEntity, skuStockVo);
             skuStockVos.add(skuStockVo);
         });
 
