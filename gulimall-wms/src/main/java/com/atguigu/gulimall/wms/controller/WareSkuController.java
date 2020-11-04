@@ -45,13 +45,13 @@ public class WareSkuController {
      * log: xxx商品库存锁成功了
      * log: xxx商品库存锁失败了
      *
-     * @param skuIds
+     * @param skuLockVos
      * @return
      */
     @ApiOperation("验库存并锁库存")
     @GetMapping("/checkAndLock")
-    public Resp<LockStockVo> lockAndCheckStock(@RequestBody List<SkuLockVo> skuIds) throws ExecutionException, InterruptedException {
-        LockStockVo lockStockVo = wareSkuService.lockAndCheckStock(skuIds);
+    public Resp<LockStockVo> lockAndCheckStock(@RequestBody List<SkuLockVo> skuLockVos) throws ExecutionException, InterruptedException {
+        LockStockVo lockStockVo = wareSkuService.lockAndCheckStock(skuLockVos);
         return Resp.ok(lockStockVo);
     }
 

@@ -22,6 +22,7 @@ public interface WareSkuDao extends BaseMapper<WareSkuEntity> {
 
     /**
      * 检查商品未锁定库存量
+     *
      * @param skuLockVo
      * @return
      */
@@ -29,15 +30,17 @@ public interface WareSkuDao extends BaseMapper<WareSkuEntity> {
 
     /**
      * 查询所有能减掉库存的仓库
+     *
      * @param skuLockVo
      * @return
      */
     List<WareSkuEntity> getAllWareCanLocked(SkuLockVo skuLockVo);
 
     /**
+     * 锁库存
      *
      * @param skuLockVo
-     * @param id    仓库id
+     * @param id        仓库id
      * @return
      */
     long lockSku(@Param("sku") SkuLockVo skuLockVo,
