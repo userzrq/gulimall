@@ -3,6 +3,7 @@ package com.atguigu.gulimall.cart.controller;
 import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.cart.service.CartService;
 import com.atguigu.gulimall.cart.vo.CartVo;
+import com.atguigu.gulimall.commons.utils.GuliJwtUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -31,8 +33,23 @@ public class CartController {
     @Qualifier("otherExecutor")
     ThreadPoolExecutor executor;
 
+    @ApiOperation("返回购物车中所有 选中的 商品信息以及总价格，优惠等信息")
+    @GetMapping("/getItemsForOrder")
+    public Resp<CartVo> getCartCheckItemsAndStatics(HttpServletRequest request) {
+        /**
+         * 登录后的token由后端返回，前端在请求的时候带上代表，代表用户身份
+         */
+        String authorization = request.getHeader("Authorization");
+        Map<String, Object> jwtBody = GuliJwtUtils.getJwtBody(authorization);
+
+        Long userId = (Long) jwtBody.get("userId");
+        CartVo cartVo = cartService.getCartForOrder(userId);
+        return Resp.ok(cartVo);
+    }
+
+
     /**
-     * 当内存不够时，通过接口销毁线程池，释放资源
+     * 当内存不够时，运维可通过接口销毁线程池，释放资源
      *
      * @return
      */
@@ -64,7 +81,7 @@ public class CartController {
      * <p>
      * 选中不选中会影响总价
      */
-    @ApiOperation("选中/不选中购物车")
+    @ApiOperation("选中/不选中购物车中的购物项")
     @PostMapping("/check")
     public Resp<CartVo> checkCart(@RequestParam("skuIds") Long[] skuId,
                                   @RequestParam("status") Integer status,

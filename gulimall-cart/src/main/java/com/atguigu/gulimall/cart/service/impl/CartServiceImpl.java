@@ -193,19 +193,18 @@ public class CartServiceImpl implements CartService {
         CartKey key = getKey(userKey, authorization);
         String cartKey = key.getKey();
         RMap<String, String> cart;
-
         if (key.isLogin()) {
             cart = redisson.getMap(Constant.CART_PREFIX + cartKey);
         } else {
             cart = redisson.getMap(Constant.TEMP_CART_PREFIX + cartKey);
         }
-
         if (skuId != null && skuId.length > 0) {
+            // 遍历商品Id，因为在redis中存放的结构是以商品Id为key的
             for (Long sku : skuId) {
                 String json = cart.get(sku.toString());
                 CartItemVo itemVo = JSON.parseObject(json, CartItemVo.class);
                 itemVo.setCheck(status == 0 ? false : true);
-                //更新购物车
+                //更新购物车中该购物项的状态，实现覆盖
                 cart.put(sku.toString(), JSON.toJSONString(itemVo));
             }
         }
@@ -215,6 +214,32 @@ public class CartServiceImpl implements CartService {
 
         CartVo cartVo = new CartVo();
         cartVo.setItems(cartItems);
+
+        return cartVo;
+    }
+
+    @Override
+    public CartVo getCartForOrder(Long userId) {
+        // 登陆情况下的购物车用的就是：cart:user:userId 作为key
+        // 购物车结构<String<String,String>> 双层hash结构，从左到右依次为：userId -> SkuId -> SkuId对应的商品详情的json
+        RMap<String, String> cart = redisson.getMap(Constant.CART_PREFIX + userId);
+
+        List<CartItemVo> cartItemVos = new ArrayList<>();
+
+        Collection<String> values = cart.values();
+        if (values != null && values.size() > 0) {
+            for (String innerValue : values) {
+                if (StringUtils.isEmpty(innerValue)) {
+                    CartItemVo itemVo = JSON.parseObject(innerValue, CartItemVo.class);
+                    if (itemVo.isCheck()) {
+                        cartItemVos.add(itemVo);
+                    }
+                }
+            }
+        }
+        // 准备一个新的购物车对象用作方法返回
+        CartVo cartVo = new CartVo();
+        cartVo.setItems(cartItemVos);
 
         return cartVo;
     }
