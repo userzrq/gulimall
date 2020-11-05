@@ -52,7 +52,6 @@ public class GuliJwtUtils {
         jwt = jwt.substring(bearerPrefix.length());
 
         Jwts.parser().setSigningKey(key).parse(jwt);
-
     }
 
     /**
