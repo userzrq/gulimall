@@ -50,7 +50,6 @@ public class MemberReceiveAddressController {
      */
     @ApiOperation("分页查询(排序)")
     @GetMapping("/list")
-    @PreAuthorize("hasAuthority('ums:memberreceiveaddress:list')")
     public Resp<PageVo> list(QueryCondition queryCondition) {
         PageVo page = memberReceiveAddressService.queryPage(queryCondition);
 
@@ -63,7 +62,6 @@ public class MemberReceiveAddressController {
      */
     @ApiOperation("详情查询")
     @GetMapping("/info/{id}")
-    @PreAuthorize("hasAuthority('ums:memberreceiveaddress:info')")
     public Resp<MemberReceiveAddressEntity> info(@PathVariable("id") Long id) {
         MemberReceiveAddressEntity memberReceiveAddress = memberReceiveAddressService.getById(id);
 
@@ -75,7 +73,6 @@ public class MemberReceiveAddressController {
      */
     @ApiOperation("保存")
     @PostMapping("/save")
-    @PreAuthorize("hasAuthority('ums:memberreceiveaddress:save')")
     public Resp<Object> save(@RequestBody MemberReceiveAddressEntity memberReceiveAddress) {
         memberReceiveAddressService.save(memberReceiveAddress);
 
@@ -87,7 +84,6 @@ public class MemberReceiveAddressController {
      */
     @ApiOperation("修改")
     @PostMapping("/update")
-    @PreAuthorize("hasAuthority('ums:memberreceiveaddress:update')")
     public Resp<Object> update(@RequestBody MemberReceiveAddressEntity memberReceiveAddress) {
         memberReceiveAddressService.updateById(memberReceiveAddress);
 
@@ -99,7 +95,6 @@ public class MemberReceiveAddressController {
      */
     @ApiOperation("删除")
     @PostMapping("/delete")
-    @PreAuthorize("hasAuthority('ums:memberreceiveaddress:delete')")
     public Resp<Object> delete(@RequestBody Long[] ids) {
         memberReceiveAddressService.removeByIds(Arrays.asList(ids));
 

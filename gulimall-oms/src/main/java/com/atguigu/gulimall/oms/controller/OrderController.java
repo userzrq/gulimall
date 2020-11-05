@@ -1,22 +1,21 @@
 package com.atguigu.gulimall.oms.controller;
 
 import java.util.Arrays;
-import java.util.Map;
+import java.util.Objects;
 
 
 import com.atguigu.gulimall.commons.bean.PageVo;
 import com.atguigu.gulimall.commons.bean.QueryCondition;
 import com.atguigu.gulimall.commons.bean.Resp;
+import com.atguigu.gulimall.oms.vo.OrderSubmitVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.atguigu.gulimall.oms.entity.OrderEntity;
 import com.atguigu.gulimall.oms.service.OrderService;
-
-
 
 
 /**
@@ -27,6 +26,7 @@ import com.atguigu.gulimall.oms.service.OrderService;
  * @date 2020-05-18 10:34:36
  */
 @Api(tags = "订单 管理")
+@Slf4j
 @RestController
 @RequestMapping("oms/order")
 public class OrderController {
@@ -34,11 +34,27 @@ public class OrderController {
     private OrderService orderService;
 
     /**
+     * 远程根据提交的订单创建订单信息
+     *
+     * @return
+     */
+    @PostMapping("/createAndSave")
+    public Resp<OrderEntity> createAndSaveOrder(@RequestBody OrderSubmitVo orderSubmitVo) {
+
+        OrderEntity orderEntity = orderService.createAndSaveOrder(orderSubmitVo);
+
+        if (!Objects.isNull(orderEntity)) {
+            log.info("订单创建成功,订单详情:{}", orderEntity.toString());
+        }
+
+        return Resp.ok(orderEntity);
+    }
+
+    /**
      * 列表
      */
     @ApiOperation("分页查询(排序)")
     @GetMapping("/list")
-    @PreAuthorize("hasAuthority('oms:order:list')")
     public Resp<PageVo> list(QueryCondition queryCondition) {
         PageVo page = orderService.queryPage(queryCondition);
 
@@ -51,9 +67,8 @@ public class OrderController {
      */
     @ApiOperation("详情查询")
     @GetMapping("/info/{id}")
-    @PreAuthorize("hasAuthority('oms:order:info')")
-    public Resp<OrderEntity> info(@PathVariable("id") Long id){
-		OrderEntity order = orderService.getById(id);
+    public Resp<OrderEntity> info(@PathVariable("id") Long id) {
+        OrderEntity order = orderService.getById(id);
 
         return Resp.ok(order);
     }
@@ -63,9 +78,8 @@ public class OrderController {
      */
     @ApiOperation("保存")
     @PostMapping("/save")
-    @PreAuthorize("hasAuthority('oms:order:save')")
-    public Resp<Object> save(@RequestBody OrderEntity order){
-		orderService.save(order);
+    public Resp<Object> save(@RequestBody OrderEntity order) {
+        orderService.save(order);
 
         return Resp.ok(null);
     }
@@ -75,9 +89,8 @@ public class OrderController {
      */
     @ApiOperation("修改")
     @PostMapping("/update")
-    @PreAuthorize("hasAuthority('oms:order:update')")
-    public Resp<Object> update(@RequestBody OrderEntity order){
-		orderService.updateById(order);
+    public Resp<Object> update(@RequestBody OrderEntity order) {
+        orderService.updateById(order);
 
         return Resp.ok(null);
     }
@@ -87,9 +100,8 @@ public class OrderController {
      */
     @ApiOperation("删除")
     @PostMapping("/delete")
-    @PreAuthorize("hasAuthority('oms:order:delete')")
-    public Resp<Object> delete(@RequestBody Long[] ids){
-		orderService.removeByIds(Arrays.asList(ids));
+    public Resp<Object> delete(@RequestBody Long[] ids) {
+        orderService.removeByIds(Arrays.asList(ids));
 
         return Resp.ok(null);
     }
