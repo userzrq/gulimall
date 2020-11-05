@@ -1,5 +1,6 @@
 package com.atguigu.gulimall.cart.controller;
 
+import com.atguigu.gulimall.cart.vo.ClearCartVo;
 import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.cart.service.CartService;
 import com.atguigu.gulimall.cart.vo.CartVo;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +34,15 @@ public class CartController {
     @Autowired
     @Qualifier("otherExecutor")
     ThreadPoolExecutor executor;
+
+
+    @PostMapping("/cart/clearCartSku")
+    public Resp<CartVo> clearSkuIds(@RequestBody ClearCartVo clearCartVo) {
+        cartService.clearSkuIds(clearCartVo);
+
+        return Resp.ok(null);
+    }
+
 
     @ApiOperation("返回购物车中所有 选中的 商品信息以及总价格，优惠等信息")
     @GetMapping("/getItemsForOrder")

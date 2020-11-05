@@ -7,6 +7,7 @@ import com.atguigu.gulimall.cart.service.CartService;
 import com.atguigu.gulimall.cart.to.SkuCouponTo;
 import com.atguigu.gulimall.cart.vo.CartItemVo;
 import com.atguigu.gulimall.cart.vo.CartVo;
+import com.atguigu.gulimall.cart.vo.ClearCartVo;
 import com.atguigu.gulimall.cart.vo.SkuCouponVo;
 import com.atguigu.gulimall.cart.vo.SkuFullReductionVo;
 import com.atguigu.gulimall.commons.bean.Constant;
@@ -37,6 +38,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author 10017
+ */
 @Service
 public class CartServiceImpl implements CartService {
 
@@ -242,6 +246,20 @@ public class CartServiceImpl implements CartService {
         cartVo.setItems(cartItemVos);
 
         return cartVo;
+    }
+
+    @Override
+    public void clearSkuIds(ClearCartVo clearCartVo) {
+        RMap<String, String> cart;
+
+        Long userId = clearCartVo.getUserId();
+
+        cart = redisson.getMap(Constant.CART_PREFIX + userId);
+
+        List<Long> skuIds = clearCartVo.getSkuIds();
+        skuIds.forEach((skuId) -> {
+            cart.remove(skuId.toString());
+        });
     }
 
 
