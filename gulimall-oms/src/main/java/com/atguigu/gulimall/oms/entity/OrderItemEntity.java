@@ -6,8 +6,8 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.math.BigDecimal;
 import java.io.Serializable;
-import java.util.Date;
 import lombok.Data;
+import lombok.ToString;
 
 /**
  * 订单项信息
@@ -18,6 +18,7 @@ import lombok.Data;
  */
 @ApiModel
 @Data
+@ToString
 @TableName("oms_order_item")
 public class OrderItemEntity implements Serializable {
 	private static final long serialVersionUID = 1L;
