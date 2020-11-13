@@ -36,8 +36,8 @@ public class CartController {
     ThreadPoolExecutor executor;
 
 
-    @PostMapping("/cart/clearCartSku")
-    public Resp<CartVo> clearSkuIds(@RequestBody ClearCartVo clearCartVo) {
+    @PostMapping("/clearCartSku")
+    public Resp<Object> clearSkuIds(@RequestBody ClearCartVo clearCartVo) {
         cartService.clearSkuIds(clearCartVo);
 
         return Resp.ok(null);
