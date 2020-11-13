@@ -49,8 +49,8 @@ public class WareSkuController {
      * @return
      */
     @ApiOperation("验库存并锁库存")
-    @GetMapping("/checkAndLock")
-    public Resp<LockStockVo> lockAndCheckStock(@RequestBody List<SkuLockVo> skuLockVos) throws ExecutionException, InterruptedException {
+    @PostMapping("/checkAndLock")
+    public Resp<LockStockVo> lockAndCheckStock(@RequestBody List<SkuLockVo> skuLockVos) {
         LockStockVo lockStockVo = wareSkuService.lockAndCheckStock(skuLockVos);
         return Resp.ok(lockStockVo);
     }

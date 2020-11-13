@@ -9,4 +9,6 @@ import lombok.Data;
 public class SkuLockVo {
     private Long skuId;
     private Integer num;
+
+    private String orderToken;
 }

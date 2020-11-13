@@ -5,16 +5,16 @@ import com.atguigu.gulimall.wms.vo.LockStockVo;
 import com.atguigu.gulimall.wms.vo.SkuLock;
 import com.atguigu.gulimall.wms.vo.SkuLockVo;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.apache.bcel.classfile.ConstantLong;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,8 +28,11 @@ import com.atguigu.gulimall.commons.bean.QueryCondition;
 import com.atguigu.gulimall.wms.dao.WareSkuDao;
 import com.atguigu.gulimall.wms.entity.WareSkuEntity;
 import com.atguigu.gulimall.wms.service.WareSkuService;
+import org.springframework.transaction.PlatformTransactionManager;
 
-
+/**
+ * @author 10017
+ */
 @Slf4j
 @Service("wareSkuService")
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
@@ -39,6 +42,16 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
     @Autowired
     private WareSkuDao wareSkuDao;
+
+//    @Autowired
+//    Executor executor;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    PlatformTransactionManager transactionManager;
+
 
     @Override
     public PageVo queryPage(QueryCondition params) {
@@ -55,11 +68,11 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
      * @return
      */
     @Override
-    public LockStockVo lockAndCheckStock(List<SkuLockVo> skuLockVos) throws ExecutionException, InterruptedException {
+    public LockStockVo lockAndCheckStock(List<SkuLockVo> skuLockVos) {
 
         AtomicReference<Boolean> flag = new AtomicReference<>(true);
         List<SkuLock> skuLocks = new ArrayList<>();
-        List<CompletableFuture> futures = new ArrayList<>();
+        CompletableFuture[] futures = new CompletableFuture[skuLockVos.size()];
         /**
          * ForkJoinPool
          * 核心：
@@ -73,19 +86,23 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
          */
         if (skuLockVos != null && skuLockVos.size() > 0) {
             log.info("需要锁定库存的商品有【{}】种...准备加锁...", skuLockVos.size());
+            int i = 0;
             for (SkuLockVo skuLockVo : skuLockVos) {
                 CompletableFuture<Void> async = CompletableFuture.runAsync(() -> {
                     try {
+                        log.info("锁库存开始..." + skuLockVo);
                         SkuLock skuLock = lockSku(skuLockVo);
+                        log.info("锁库存结束..." + skuLockVo);
+                        skuLocks.add(skuLock);
                         if (skuLock.getSuccess() == false) {
                             flag.set(false);
                         }
-                        skuLocks.add(skuLock);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 });
-                futures.add(async);
+                futures[i] = async;
+                i++;
             }
         }
 
@@ -98,14 +115,20 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
          */
 
         LockStockVo lockStockVo = new LockStockVo();
+        CompletableFuture.allOf(futures);
         lockStockVo.setLocks(skuLocks);
         lockStockVo.setLocked(flag.get());
         /**
-         * 待异步线程全部完成后
+         * 待异步线程全部完成后,数组不允许带泛型，会导致转型失败
          */
-        CompletableFuture[] completableFutures = (CompletableFuture[]) futures.toArray();
-        CompletableFuture<Void> future = CompletableFuture.allOf(completableFutures);
-        future.get();
+
+        if (flag.get()) {
+            // 库存都锁住了
+            // 将锁库存的信息发送到消息队列，40min还没被消费就过期
+            rabbitTemplate.convertAndSend("skuStockCreateExchange","create.skuStock",skuLocks);
+
+        }
+
 
         return lockStockVo;
     }
@@ -128,7 +151,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
             RLock lock = redisson.getLock(Constant.STOCK_LOCKED + skuLockVo.getSkuId());
             // 分布式锁尝试加锁
-            boolean b = lock.tryLock(1, 1, TimeUnit.SECONDS);
+            boolean b = lock.tryLock(1, 1, TimeUnit.MINUTES);
             if (b) {
                 List<WareSkuEntity> wareSkuEntities = wareSkuDao.getAllWareCanLocked(skuLockVo);
                 // 判断仓库是否有足够够锁的库存数量

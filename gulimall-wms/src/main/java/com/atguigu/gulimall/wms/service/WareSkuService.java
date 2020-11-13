@@ -27,7 +27,9 @@ public interface WareSkuService extends IService<WareSkuEntity> {
      *
      * @param skuIds
      * @return
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
-    LockStockVo lockAndCheckStock(List<SkuLockVo> skuIds) throws ExecutionException, InterruptedException;
+    LockStockVo lockAndCheckStock(List<SkuLockVo> skuIds);
 }
 
