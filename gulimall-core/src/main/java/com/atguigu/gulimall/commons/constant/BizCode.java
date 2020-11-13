@@ -17,9 +17,15 @@ public enum BizCode {
      */
     ORDER_NEED_REFRESH(41000, "商品数据有修改，请重新提交再试"),
     /**
+     * 远程服务故障，调度失败
+     */
+    SERVICE_UNAVAILABLE(10000, "远程服务故障，调度失败"),
+
+    /**
      * 库存不足，锁库存失败
      */
     STOCK_NOT_ENOUGH(50001, "库存不足");
+
 
     Integer code;
     String msg;
