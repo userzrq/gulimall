@@ -21,7 +21,7 @@ public class OrderSubmitVo {
     private String remark;
 
     /**
-     * 选中的地址
+     * 选中的地址id
      */
     private Long addressId;
 

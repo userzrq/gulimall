@@ -10,8 +10,11 @@ public class SkuLockVo {
     private Long skuId;
     private Integer num;
 
-    public SkuLockVo(Long skuId, Integer num) {
+    private String orderToken;
+
+    public SkuLockVo(Long skuId, Integer num, String orderToken) {
         this.skuId = skuId;
         this.num = num;
+        this.orderToken = orderToken;
     }
 }

@@ -17,6 +17,15 @@ public interface MemberAddressFeignService {
      * @param memberId
      * @return
      */
-    @GetMapping("/member/{memberId}")
+    @GetMapping("ums/memberreceiveaddress/member/{memberId}")
     public Resp<List<MemberAddressVo>> getMemberAddress(@PathVariable Long memberId);
+
+
+    /**
+     * 根据地址的主键id查地址详细信息
+     * @param id
+     * @return
+     */
+    @GetMapping("ums/memberreceiveaddress/info/{id}")
+    public Resp<MemberAddressVo> info(@PathVariable("id") Long id);
 }
