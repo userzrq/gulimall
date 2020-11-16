@@ -21,5 +21,8 @@ public class LockStockVo {
      * 如果有拆单的逻辑，订单里面有很多来源于不同仓库的商品
      * 以仓库发货单位进行拆分
      */
+
+
+    private String orderToken;
 }
 

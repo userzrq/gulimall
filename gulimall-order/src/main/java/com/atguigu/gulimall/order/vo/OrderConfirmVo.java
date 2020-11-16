@@ -29,7 +29,7 @@ public class OrderConfirmVo {
      */
 
     /**
-     * 交易令牌（防止订单重复提交）
+     * 交易令牌（防止订单重复提交），也作为生成订单时的订单号
      */
     private String orderToken;
 }

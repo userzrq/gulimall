@@ -95,7 +95,13 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     ThreadPoolExecutor executor;
 
+    //---------------------------------⬇ rabbitMQ测试 ⬇----------------------------------------
 
+    /**
+     * rabbitMQ测试:创建订单
+     *
+     * @return
+     */
     @Override
     public Order createOrder() {
         Order order = new Order();
@@ -141,7 +147,7 @@ public class OrderServiceImpl implements OrderService {
         channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
     }
 
-    //---------------------------------rabbitMQ测试----------------------------------------
+    //---------------------------------⬆ rabbitMQ测试 ⬆----------------------------------------
 
 
     /**
@@ -187,7 +193,9 @@ public class OrderServiceImpl implements OrderService {
             CompletableFuture.allOf(future1, future2).get();
 
             // 创建一个交易令牌，以后提交订单都要携带
-            String orderToken = UUID.randomUUID().toString().replace("-", "");
+            // String orderToken = UUID.randomUUID().toString().replace("-", "");
+            String orderToken = IdWorker.getTimeId();
+
             // 将交易令牌缓存到redis中，提交订单后会删这个令牌作为验证操作
             redisTemplate.opsForValue().set(Constant.ORDER_TOKEN + orderToken, orderToken, Constant.ORDER_TOKEN_TIMEOUT, TimeUnit.MINUTES);
             return confirmVo;

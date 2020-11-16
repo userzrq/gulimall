@@ -14,4 +14,9 @@ public class SkuLock {
      */
     private Integer locked;
     private Boolean success;
+
+    /**
+     * 为哪个订单锁库存
+     */
+    private String orderToken;
 }

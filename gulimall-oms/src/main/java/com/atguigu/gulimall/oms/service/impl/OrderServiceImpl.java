@@ -53,8 +53,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         OrderEntity orderEntity = new OrderEntity();
         BeanUtils.copyProperties(orderSubmitVo, orderEntity);
 
-        // 订单号
-        orderEntity.setOrderSn(IdWorker.getTimeId());
+        // 生成订单号
+        orderEntity.setOrderSn(orderSubmitVo.getOrderToken());
         // 价格信息
         orderEntity.setTotalAmount(cartVo.getTotalPrice());
         orderEntity.setPayAmount(cartVo.getCartPrice());

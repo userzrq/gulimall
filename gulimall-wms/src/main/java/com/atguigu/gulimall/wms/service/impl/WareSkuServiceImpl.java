@@ -1,5 +1,6 @@
 package com.atguigu.gulimall.wms.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.atguigu.gulimall.commons.bean.Constant;
 import com.atguigu.gulimall.wms.vo.LockStockVo;
 import com.atguigu.gulimall.wms.vo.SkuLock;
@@ -9,6 +10,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ import com.atguigu.gulimall.wms.dao.WareSkuDao;
 import com.atguigu.gulimall.wms.entity.WareSkuEntity;
 import com.atguigu.gulimall.wms.service.WareSkuService;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author 10017
@@ -52,6 +55,9 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     @Autowired
     PlatformTransactionManager transactionManager;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
 
     @Override
     public PageVo queryPage(QueryCondition params) {
@@ -67,6 +73,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
      * @param skuLockVos 购物车中被勾选的，需要购买->查库存的skuLockVo(skuId,num)集合
      * @return
      */
+    @Transactional
     @Override
     public LockStockVo lockAndCheckStock(List<SkuLockVo> skuLockVos) {
 
@@ -84,15 +91,20 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
          * 要控制锁的粒度，不能喝对所有商品一概加锁
          * 粒度越细，并发越高
          */
+        String orderToken = "";
         if (skuLockVos != null && skuLockVos.size() > 0) {
+            // 为哪一个订单锁库存
+            orderToken = skuLockVos.get(0).getOrderToken();
             log.info("需要锁定库存的商品有【{}】种...准备加锁...", skuLockVos.size());
             int i = 0;
             for (SkuLockVo skuLockVo : skuLockVos) {
+                String finalOrderToken = orderToken;
                 CompletableFuture<Void> async = CompletableFuture.runAsync(() -> {
                     try {
                         log.info("锁库存开始..." + skuLockVo);
                         SkuLock skuLock = lockSku(skuLockVo);
                         log.info("锁库存结束..." + skuLockVo);
+                        skuLock.setOrderToken(finalOrderToken);
                         skuLocks.add(skuLock);
                         if (skuLock.getSuccess() == false) {
                             flag.set(false);
@@ -125,10 +137,12 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         if (flag.get()) {
             // 库存都锁住了
             // 将锁库存的信息发送到消息队列，40min还没被消费就过期
-            rabbitTemplate.convertAndSend("skuStockCreateExchange","create.skuStock",skuLocks);
+            // rabbitTemplate.convertAndSend("skuStockCreateExchange", "create.skuStock", skuLocks);
+            // 保存一下当前订单都锁了哪些库存
 
+            String lockSkusJson = JSON.toJSONString(skuLocks);
+            redisTemplate.opsForValue().set(Constant.ORDER_STOCK_LOCKED + orderToken,lockSkusJson);
         }
-
 
         return lockStockVo;
     }
