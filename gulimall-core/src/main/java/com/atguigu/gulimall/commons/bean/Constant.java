@@ -52,4 +52,10 @@ public class Constant {
      * 商品库存分布式锁前缀 stock:lock: + skuId 标识每个商品的库存
      */
     public static final String STOCK_LOCKED = "stock:lock:";
+
+
+    /**
+     * 订单锁库存分布式锁前缀 order:stock:lock: + orderToken 标识每个订单编号下锁了哪些商品
+     */
+    public static final String ORDER_STOCK_LOCKED = "order:stock:lock:";
 }
