@@ -1,14 +1,18 @@
 package com.atguigu.gulimall.order.config;
 
+import com.atguigu.gulimall.commons.constant.RabbitMQConstant;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Exchange;
-import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * RabbitTemplate：用于收发消息
@@ -48,33 +52,71 @@ public class GulimallRabbitConfig {
      *
      * @return
      */
-    @Bean("my-guli-fanout-exchange")
-    public Exchange myExchange() {
+    @Bean(RabbitMQConstant.order_exchange)
+    public Exchange orderTopicExchange() {
         /**
          * String name, boolean durable, boolean autoDelete, Map<String, Object> arguments
          */
-        FanoutExchange fanoutExchange = new FanoutExchange("my-guli-fanout-exchange", true, false, null);
-        System.out.println("启动程序后,就会伴随Spring容器的初始化,自动创建rabbitMq中的组件");
-        return fanoutExchange;
+        TopicExchange orderTopicExchange = new TopicExchange(RabbitMQConstant.order_exchange, true, false, null);
+        return orderTopicExchange;
     }
 
-    @Bean("myqueue")
-    public Queue myQueue() {
+    /**
+     * 延时队列
+     *
+     * @return
+     */
+    @Bean("order-delay-queue")
+    public Queue orderDelayQueue() {
         /**
          * String name, boolean durable, boolean exclusive, boolean autoDelete, @Nullable Map<String, Object> arguments
          */
-        return new Queue("myqueue", true, false, false, null);
+        Map<String, Object> properties = new HashMap<>();
+        // 信死了还是交给order_enchange，但是路由键要发生变化
+        properties.put("x-dead-letter-exchange", RabbitMQConstant.order_exchange);
+        // 信死了以什么路由键发出去，消息发布者需要指定的路由键
+        properties.put("x-dead-letter-routing-key", RabbitMQConstant.order_dead_event_routing_key);
+        properties.put("x-message-ttl", RabbitMQConstant.order_timeout);
+        return new Queue("order-delay-queue", true, false, false, properties);
     }
 
-    @Bean
-    public Binding myBinding() {
-        /**
-         * String destination, DestinationType destinationType, String exchange, String routingKey, @Nullable Map<String, Object> arguments
-         */
-        return new Binding("myqueue",
+
+    /**
+     * 被order_exchange重新通过死信路由键发出去后到达的队列，接收死单
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_queuq_dead)
+    public Queue deadQueue() {
+        return new Queue(RabbitMQConstant.order_queuq_dead, true, false, false, null);
+    }
+
+    /**
+     * 交换机与延时队列的路由绑定
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_exchange + "_" + "order-delay-queue" + RabbitMQConstant.order_create_event_routing_key)
+    public Binding orderCreateBinding() {
+        return new Binding("order-delay-queue",
                 Binding.DestinationType.QUEUE,
-                "my-guli-fanout-exchange",
-                "hello",
+                RabbitMQConstant.order_exchange,
+                RabbitMQConstant.order_create_event_routing_key,
+                null
+        );
+    }
+
+    /**
+     * 交换机与死单队列的路由绑定
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_exchange + "_" + "dead-queue" + RabbitMQConstant.order_dead_event_routing_key)
+    public Binding orderDeadBinding() {
+        return new Binding(RabbitMQConstant.order_queuq_dead,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.order_exchange,
+                RabbitMQConstant.order_dead_event_routing_key,
                 null
         );
     }
@@ -82,6 +124,7 @@ public class GulimallRabbitConfig {
 
     /**
      * 设置消息队列全局使用的转化器
+     *
      * @return
      */
     @Bean

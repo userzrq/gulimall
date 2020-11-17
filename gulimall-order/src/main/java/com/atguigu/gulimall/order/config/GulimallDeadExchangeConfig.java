@@ -18,7 +18,7 @@ import java.util.Map;
  *      2.消息在Queue中的存活时间到了（给消息设置过期时间 或者 给队列设置过期时间）
  *      3.队列中的长度限制满了，排在前面的消息会被丢弃或者进入死信队列
  */
-@Configuration
+//@Configuration
 @EnableRabbit
 public class GulimallDeadExchangeConfig {
 

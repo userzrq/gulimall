@@ -186,17 +186,14 @@ public class OrderServiceImpl implements OrderService {
             Resp<CartVo> checkItemsAndStatics = cartFeignService.getCartCheckItemsAndStatics();
             confirmVo.setCartVo(checkItemsAndStatics.getData());
         }, executor);
-
-        // --------------------------------------------------------------------------------------------------
         try {
             // 异步任务结束
             CompletableFuture.allOf(future1, future2).get();
 
-            // 创建一个交易令牌，以后提交订单都要携带
+            // 创建一个交易令牌，以后提交订单都要携带，并缓存到redis中，提交订单后会删这个令牌作为验证操作
             // String orderToken = UUID.randomUUID().toString().replace("-", "");
             String orderToken = IdWorker.getTimeId();
 
-            // 将交易令牌缓存到redis中，提交订单后会删这个令牌作为验证操作
             redisTemplate.opsForValue().set(Constant.ORDER_TOKEN + orderToken, orderToken, Constant.ORDER_TOKEN_TIMEOUT, TimeUnit.MINUTES);
             return confirmVo;
         } catch (Exception e) {
@@ -299,6 +296,9 @@ public class OrderServiceImpl implements OrderService {
                         // 创建订单
                         Resp<OrderEntityVo> saveOrder = null;
                         try {
+                            // 远程调用不一定会成功
+                            // 但如果调用是成功的，返回数据时，order微服务挂了，往消息队列中添加消息的步骤就可能遗失了
+                            // 所以要在oms的createAndSaveOrder远程服务方法中给mq发消息
                             saveOrder = orderCreateFeignService.createAndSaveOrder(orderFeignSubmitVo);
                         } catch (Exception e) {
                             Resp<Object> fail = Resp.fail(null);
