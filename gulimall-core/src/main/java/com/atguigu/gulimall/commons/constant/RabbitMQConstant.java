@@ -17,6 +17,13 @@ public class RabbitMQConstant {
 
     public static final String order_dead_event_routing_key = "order.dead";
 
+    public static final String order_dead_release_routing_key = "order.release";
+
+    public static final String order_pay_success_routing_key = "order.payed";
+
+    // 订单支付成功和支付成功扣库存 可以用一个路由键，消息通过一个路由键发送到两个队列中
+    // public static final String stock_sub_routing_key = "stock.sub";
+
     /**
      * 订单的过期时间，30分钟
      */
@@ -26,5 +33,21 @@ public class RabbitMQConstant {
     /**
      * 死单队列
      */
-    public static final String order_queuq_dead = "order-dead-queue";
+    public static final String order_queue_dead = "order-dead-queue";
+
+
+    /**
+     * 订单释放队列
+     */
+    public static final String order_queue_need_release = "order-need-release-queue";
+
+    /**
+     * 订单支付成功队列
+     */
+    public static final String order_queue_pay_success = "order-pay-success-queue";
+
+    /**
+     * 支付成功，库存扣减队列
+     */
+    public static final String stock_queue_sub = "stock-sub-queue";
 }
