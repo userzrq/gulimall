@@ -17,6 +17,9 @@
         <mybatisplus.version>3.0.7.1</mybatisplus.version>
         <mysql.version>5.1.47</mysql.version>
         <swagger.version>2.9.2</swagger.version>
+        <redisson.version>3.10.5</redisson.version>
+        <lombok.version>1.18.8</lombok.version>
+        <jjwt.version>0.9.0</jjwt.version>
     </properties>
 
     <dependencies>
@@ -31,6 +34,12 @@
             <version>${nacos.version}</version>
         </dependency>
 
+        <!--redisson依赖注入-->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>${redisson.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
@@ -69,15 +78,14 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.8</version>
+            <version>${lombok.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
-            <version>0.9.0</version>
+            <version>${jjwt.version}</version>
         </dependency>
-
 
 
     </dependencies>

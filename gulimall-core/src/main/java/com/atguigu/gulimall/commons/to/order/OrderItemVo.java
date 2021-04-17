@@ -37,6 +37,8 @@ public class OrderItemVo {
 
     private Integer skuQuantity;
 
+    // 少传了一个字段，仓库Id，支付成功后要真正扣库存
+
     private String skuAttrsVals;
 
     private BigDecimal promotionAmount;

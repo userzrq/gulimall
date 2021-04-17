@@ -54,6 +54,7 @@ public class Constant {
     public static final String STOCK_LOCKED = "stock:lock:";
 
 
+
     /**
      * 订单锁库存分布式锁前缀 order:stock:lock: + orderToken 标识每个订单编号下锁了哪些商品
      */

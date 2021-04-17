@@ -27,6 +27,9 @@ public class GuliJwtUtils {
                 .signWith(SignatureAlgorithm.HS256, GuliJwtUtils.key)
                 .setClaims(payload);//设置自定义的负载
 
+        /**
+         * jwt中一些原生自带的属性，多久过期等等....
+         */
         if (claims != null) {
             if (claims.getId() != null) {
                 builder.setId(claims.getId());
@@ -40,7 +43,6 @@ public class GuliJwtUtils {
             if (claims.getNotBefore() != null) {
                 builder.setNotBefore(claims.getNotBefore());
             }
-            //xxxxx
         }
 
         String compact = builder.compact();

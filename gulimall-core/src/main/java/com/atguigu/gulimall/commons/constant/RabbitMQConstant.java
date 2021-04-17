@@ -15,6 +15,8 @@ public class RabbitMQConstant {
 
     public static final String order_create_event_routing_key = "order.create";
 
+    public static final String order_quick_create_routing_key = "order.create.quick";
+
     public static final String order_dead_event_routing_key = "order.dead";
 
     public static final String order_dead_release_routing_key = "order.release";
@@ -29,12 +31,10 @@ public class RabbitMQConstant {
      */
     public static final Long order_timeout = 1000 * 60 * 30L;
 
-
     /**
      * 死单队列
      */
     public static final String order_queue_dead = "order-dead-queue";
-
 
     /**
      * 订单释放队列
@@ -50,4 +50,10 @@ public class RabbitMQConstant {
      * 支付成功，库存扣减队列
      */
     public static final String stock_queue_sub = "stock-sub-queue";
+
+    /**
+     * 秒杀成功，快速创建订单队列
+     */
+    public static final String order_queue_quick_create = "order-quick-create-queue";
+
 }

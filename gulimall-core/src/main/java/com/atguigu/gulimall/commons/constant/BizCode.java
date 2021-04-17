@@ -7,7 +7,18 @@ package com.atguigu.gulimall.commons.constant;
  * @author 10017
  */
 public enum BizCode {
-
+    /**
+     * 商品秒杀成功
+     */
+    KILL_SUCCESS(20001, "商品秒杀成功，请及时付款"),
+    /**
+     * 当前用户过多，请稍后再试
+     */
+    TOO_MANY_PEOPLE(30000, "当前用户过多，请稍后再试"),
+    /**
+     * 未登陆，请先登陆
+     */
+    NEED_LOGIN(40000, "请先登录"),
     /**
      * 令牌失效-拒绝访问
      */
@@ -20,7 +31,6 @@ public enum BizCode {
      * 远程服务故障，调度失败
      */
     SERVICE_UNAVAILABLE(10000, "远程服务故障，调度失败"),
-
     /**
      * 库存不足，锁库存失败
      */
