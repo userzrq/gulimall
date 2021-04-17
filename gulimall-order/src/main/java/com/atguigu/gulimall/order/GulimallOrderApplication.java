@@ -12,7 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  * @RefreshScope 动态获取配置
  */
 @RefreshScope
-@EnableFeignClients
+@EnableFeignClients(clients = {})
 @EnableDiscoveryClient
 @SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
 public class GulimallOrderApplication {

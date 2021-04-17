@@ -3,6 +3,9 @@ package com.atguigu.gulimall.order.service.impl;
 import com.atguigu.gulimall.commons.bean.Constant;
 import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.commons.constant.BizCode;
+import com.atguigu.gulimall.commons.constant.RabbitMQConstant;
+import com.atguigu.gulimall.commons.to.mq.OrderMqTo;
+import com.atguigu.gulimall.order.enume.OrderStatusEnume;
 import com.atguigu.gulimall.order.feign.CartFeignService;
 import com.atguigu.gulimall.order.feign.MemberAddressFeignService;
 import com.atguigu.gulimall.order.feign.OrderCreateFeignService;
@@ -17,6 +20,7 @@ import com.atguigu.gulimall.order.vo.OrderSubmitVo;
 import com.atguigu.gulimall.order.vo.cart.ClearCartVo;
 import com.atguigu.gulimall.order.vo.order.OrderEntityVo;
 import com.atguigu.gulimall.order.vo.order.OrderFeignSubmitVo;
+import com.atguigu.gulimall.order.vo.payment.PayAsyncVo;
 import com.atguigu.gulimall.order.vo.ware.LockStockVo;
 import com.atguigu.gulimall.order.vo.ware.SkuLock;
 import com.atguigu.gulimall.order.vo.ware.SkuLockVo;
@@ -43,7 +47,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -95,7 +98,7 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     ThreadPoolExecutor executor;
 
-    //---------------------------------⬇ rabbitMQ测试 ⬇----------------------------------------
+    //---------------------------------⬇ rabbitMQ测试  ==== 虚假的创建订单逻辑 ⬇----------------------------------------
 
     /**
      * rabbitMQ测试:创建订单
@@ -147,7 +150,7 @@ public class OrderServiceImpl implements OrderService {
         channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
     }
 
-    //---------------------------------⬆ rabbitMQ测试 ⬆----------------------------------------
+    //---------------------------------⬆ rabbitMQ测试  ==== 虚假的关单逻辑⬆----------------------------------------
 
 
     /**
@@ -171,7 +174,7 @@ public class OrderServiceImpl implements OrderService {
         CompletableFuture<Void> future1 = CompletableFuture.runAsync(() -> {
             log.info("memberAddressFeignService服务进来的线程号:{}", Thread.currentThread().getId());
 
-            // 利用ThreadLocal在同一线程共享数据（先将数据放进来复制一份）
+            // 利用ThreadLocal在同一线程共享数据（先将主线程中的 ServletRequestAttributes 复制一份到异步线程的 RequestContextHolder 上下文容器内）
             RequestContextHolder.setRequestAttributes(requestAttributes);
             Resp<List<MemberAddressVo>> memberAddress = memberAddressFeignService.getMemberAddress(userId);
             confirmVo.setAddresses(memberAddress.getData());
@@ -186,15 +189,17 @@ public class OrderServiceImpl implements OrderService {
             Resp<CartVo> checkItemsAndStatics = cartFeignService.getCartCheckItemsAndStatics();
             confirmVo.setCartVo(checkItemsAndStatics.getData());
         }, executor);
+
         try {
-            // 异步任务结束
+            // 异步任务阻塞式等待（万一远程服务不可用，查不到购物车中的信息怎么办）
             CompletableFuture.allOf(future1, future2).get();
 
-            // 创建一个交易令牌，以后提交订单都要携带，并缓存到redis中，提交订单后会删这个令牌作为验证操作
+            // 创建一个交易令牌，并缓存到redis中，提交订单的时候要携带，，提交订单后会删这个令牌作为验证操作
             // String orderToken = UUID.randomUUID().toString().replace("-", "");
             String orderToken = IdWorker.getTimeId();
 
             redisTemplate.opsForValue().set(Constant.ORDER_TOKEN + orderToken, orderToken, Constant.ORDER_TOKEN_TIMEOUT, TimeUnit.MINUTES);
+            confirmVo.setOrderToken(orderToken);
             return confirmVo;
         } catch (Exception e) {
             e.printStackTrace();
@@ -236,7 +241,7 @@ public class OrderServiceImpl implements OrderService {
 
             if (executeResult == 1) {
                 // 1.验库存\锁库存 （要求操作具有原子性，防止验库存的时候有，锁的时候有没有）
-                // 1.1) 先从购物车中获取勾选的购物项
+                // 1.1) 先从购物车中获取勾选的购物项（假如用户在另一浏览器中继续勾选商品）
                 CartVo cartVo = cartFeignService.getCartCheckItemsAndStatics().getData();
 
                 List<CartItemVo> items = cartVo.getItems();
@@ -244,8 +249,10 @@ public class OrderServiceImpl implements OrderService {
                 List<SkuLockVo> skuLockVos = new ArrayList<>();
 
                 items.forEach((item) -> {
+                    // 勾选中的商品
                     if (item.isCheck()) {
                         skuIds.add(item.getSkuId());
+                        // 将商品封装成锁库存的vo：为哪个订单的哪种商品锁多少库存
                         skuLockVos.add(new SkuLockVo(item.getSkuId(), item.getNum(), orderToken));
                     }
                 });
@@ -266,6 +273,7 @@ public class OrderServiceImpl implements OrderService {
                     // 2.验价格，与前端传来的价格进行比对
                     BigDecimal totalPrice = orderSubmitVo.getTotalPrice();
                     // 最新查询到的购物车的价格信息
+                    // 去购物车服务 通过缓存中最新的数据进行查询
                     CartVo latestCart = cartFeignService.getCartCheckItemsAndStatics().getData();
 
                     int i = latestCart.getCartPrice().compareTo(totalPrice);
@@ -293,6 +301,7 @@ public class OrderServiceImpl implements OrderService {
                         orderFeignSubmitVo.setReceiverDetailAddress(data.getDetailAddress());
                         orderFeignSubmitVo.setReceiverPhone(data.getPhone());
                         orderFeignSubmitVo.setOrderToken(orderToken);
+                        orderFeignSubmitVo.setUserId(userId);
                         // 创建订单
                         Resp<OrderEntityVo> saveOrder = null;
                         try {
@@ -365,5 +374,25 @@ public class OrderServiceImpl implements OrderService {
         } finally {
             jedis.close();
         }
+    }
+
+    @Override
+    public void paySuccess(PayAsyncVo vo) {
+        // 订单号
+        String tradeNo = vo.getOut_trade_no();
+        OrderMqTo mqTo = new OrderMqTo();
+        mqTo.setOrderSn(tradeNo);
+        // 修改订单状态
+
+        OrderEntityVo orderEntityVo = new OrderEntityVo();
+        orderEntityVo.setOrderSn(tradeNo);
+        orderEntityVo.setStatus(OrderStatusEnume.PAYED.getCode());
+
+        orderCreateFeignService.payedOrder(orderEntityVo);
+        log.info("支付成功......详情:{}", vo);
+
+        // 支付成功，将信息打到消息队列中，真正去执行扣库存的操作
+        // order_pay_success_routing_key 这一个路由键会打到两个队列中
+        rabbitTemplate.convertAndSend(RabbitMQConstant.order_exchange, RabbitMQConstant.order_pay_success_routing_key, mqTo);
     }
 }

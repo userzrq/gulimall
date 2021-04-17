@@ -53,4 +53,14 @@ public interface OrderCreateFeignService {
      */
     @PostMapping("/oms/order/update")
     public Resp<Object> updateOrder(@RequestBody OrderEntityVo order);
+
+
+    /**
+     * 已支付订单更新订单状态
+     *
+     * @param order
+     * @return
+     */
+    @PostMapping("/oms/order/payed")
+    public Resp<Object> payedOrder(@RequestBody OrderEntityVo order);
 }

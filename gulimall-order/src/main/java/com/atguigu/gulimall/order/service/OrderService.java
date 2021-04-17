@@ -5,6 +5,7 @@ import com.atguigu.gulimall.order.vo.Order;
 import com.atguigu.gulimall.order.vo.OrderConfirmVo;
 import com.atguigu.gulimall.order.vo.OrderSubmitVo;
 import com.atguigu.gulimall.order.vo.order.OrderEntityVo;
+import com.atguigu.gulimall.order.vo.payment.PayAsyncVo;
 
 import java.util.concurrent.ExecutionException;
 
@@ -29,4 +30,11 @@ public interface OrderService {
      * @throws InterruptedException
      */
     Resp<Object> submitOrder(OrderSubmitVo orderSubmitVo, Long userId) throws ExecutionException, InterruptedException;
+
+    /**
+     * 接受支付宝的支付回调
+     *
+     * @param vo
+     */
+    void paySuccess(PayAsyncVo vo);
 }

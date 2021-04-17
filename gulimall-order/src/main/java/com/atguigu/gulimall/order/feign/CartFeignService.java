@@ -16,6 +16,8 @@ public interface CartFeignService {
      * 远程调用 获取购物车中勾选的商品详情和优惠信息
      * 在Feign调用时是不需要传Request对象的
      *
+     * 实际是在拦截器中复制了主线程的Request对象，在方法中取出请求头判断用户属性
+     *
      * @param
      * @return
      */

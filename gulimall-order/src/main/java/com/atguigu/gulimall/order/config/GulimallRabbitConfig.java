@@ -44,8 +44,9 @@ import java.util.Map;
 @EnableRabbit
 @Configuration
 public class GulimallRabbitConfig {
-
     /**
+     * --------------------------------------------注册交换机--------------------------------------------
+     * <p>
      * 通过@Bean注解,将组件放到容器中,SpringBoot会自动给RabbitMQ中创建这个交换机/队列/绑定关系
      * <p>
      * 1)、去RabbitMQ中查看有没有当前名字的交换机/队列/绑定关系，如果没有就创建
@@ -61,7 +62,10 @@ public class GulimallRabbitConfig {
         return orderTopicExchange;
     }
 
+
     /**
+     * --------------------------------------------注册队列--------------------------------------------
+     * <p>
      * 延时队列
      *
      * @return
@@ -80,25 +84,68 @@ public class GulimallRabbitConfig {
         return new Queue("order-delay-queue", true, false, false, properties);
     }
 
-
     /**
      * 被order_exchange重新通过死信路由键发出去后到达的队列，接收死单
      *
      * @return
      */
-    @Bean(RabbitMQConstant.order_queuq_dead)
+    @Bean(RabbitMQConstant.order_queue_dead)
     public Queue deadQueue() {
-        return new Queue(RabbitMQConstant.order_queuq_dead, true, false, false, null);
+        return new Queue(RabbitMQConstant.order_queue_dead, true, false, false, null);
     }
 
     /**
+     * 关闭订单后需要解锁的库存队列
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_queue_need_release)
+    public Queue orderNeedReleaseQueue() {
+        return new Queue(RabbitMQConstant.order_queue_need_release, true, false, false, null);
+    }
+
+    /**
+     * 支付成功后修改订单状态的队列
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_queue_pay_success)
+    public Queue orderPaySuccessQueue() {
+        return new Queue(RabbitMQConstant.order_queue_pay_success, true, false, false, null);
+    }
+
+    /**
+     * 支付成功后需要真正减库存的队列
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.stock_queue_sub)
+    public Queue stockToBeSubQueue() {
+        return new Queue(RabbitMQConstant.stock_queue_sub, true, false, false, null);
+    }
+
+
+    /**
+     * 秒杀成功订单快速创建队列
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_queue_quick_create)
+    public Queue orderQuickCreateQueue() {
+        return new Queue(RabbitMQConstant.order_queue_quick_create, true, true, false, null);
+    }
+
+    /**
+     * --------------------------------------------注册绑定关系--------------------------------------------
+     * <p>
      * 交换机与延时队列的路由绑定
      *
      * @return
      */
-    @Bean(RabbitMQConstant.order_exchange + "_" + "order-delay-queue" + RabbitMQConstant.order_create_event_routing_key)
+    @Bean(RabbitMQConstant.order_exchange + "_" + "order-delay-queue" + "_" + RabbitMQConstant.order_create_event_routing_key)
     public Binding orderCreateBinding() {
-        return new Binding("order-delay-queue",
+        return new Binding(
+                "order-delay-queue",
                 Binding.DestinationType.QUEUE,
                 RabbitMQConstant.order_exchange,
                 RabbitMQConstant.order_create_event_routing_key,
@@ -111,23 +158,90 @@ public class GulimallRabbitConfig {
      *
      * @return
      */
-    @Bean(RabbitMQConstant.order_exchange + "_" + "dead-queue" + RabbitMQConstant.order_dead_event_routing_key)
+    @Bean(RabbitMQConstant.order_exchange + "_" + RabbitMQConstant.order_queue_dead + "_" + RabbitMQConstant.order_dead_event_routing_key)
     public Binding orderDeadBinding() {
-        return new Binding(RabbitMQConstant.order_queuq_dead,
+        return new Binding(
+                RabbitMQConstant.order_queue_dead,
                 Binding.DestinationType.QUEUE,
                 RabbitMQConstant.order_exchange,
                 RabbitMQConstant.order_dead_event_routing_key,
                 null
         );
     }
-
+    /**
+     * 交换机与需要解锁队列之前的路由绑定
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_exchange + "_" + RabbitMQConstant.order_queue_need_release + "_" + RabbitMQConstant.order_dead_release_routing_key)
+    public Binding orderNeedReleaseBinding() {
+        return new Binding(
+                RabbitMQConstant.order_queue_need_release,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.order_exchange,
+                RabbitMQConstant.order_dead_release_routing_key,
+                null
+        );
+    }
 
     /**
+     * 交换机与支付成功队列之间的绑定关系
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_exchange + "_" + RabbitMQConstant.order_queue_pay_success + "_" + RabbitMQConstant.order_pay_success_routing_key)
+    public Binding orderPaySuccessBinding() {
+
+        return new Binding(
+                RabbitMQConstant.order_queue_pay_success,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.order_exchange,
+                RabbitMQConstant.order_pay_success_routing_key,
+                null
+        );
+    }
+
+    /**
+     * 交换机与真正需要减库存队列之间的绑定关系
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_exchange + "_" + RabbitMQConstant.stock_queue_sub + "_" + RabbitMQConstant.order_pay_success_routing_key)
+    public Binding stockToBeSubBinding() {
+        return new Binding(
+                RabbitMQConstant.stock_queue_sub,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.order_exchange,
+                RabbitMQConstant.order_pay_success_routing_key,
+                null
+        );
+    }
+
+    /**
+     * 交换机与订单快速创建队列之间的绑定关系
+     *
+     * @return
+     */
+    @Bean(RabbitMQConstant.order_exchange + "_" + RabbitMQConstant.order_queue_quick_create + "_" + RabbitMQConstant.order_quick_create_routing_key)
+    public Binding orderQuickCreateBinding() {
+        return new Binding(
+                RabbitMQConstant.order_queue_quick_create,
+                Binding.DestinationType.QUEUE,
+                RabbitMQConstant.order_exchange,
+                RabbitMQConstant.order_quick_create_routing_key,
+                null
+        );
+    }
+
+    /**
+     * --------------------------------------------注册全局转换器--------------------------------------------
+     * <p>
      * 设置消息队列全局使用的转化器
      *
      * @return
      */
     @Bean
+
     public MessageConverter setConverter() {
         return new Jackson2JsonMessageConverter();
     }
