@@ -8,10 +8,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient("gulimall-sms")
+@FeignClient(name = "gulimall-sms",path = "/sms")
 public interface SmsSkuSaleInfoFeignService {
 
     // 调用路径写全
-    @PostMapping("sms/skubounds/saleinfo/save")
+    @PostMapping("/skubounds/saleinfo/save")
     public Resp<Object> saveSkuSaleInfos(@RequestBody List<SkuSaleInfoTo> to);
 }

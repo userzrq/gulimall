@@ -8,6 +8,7 @@ import com.atguigu.gulimall.commons.exception.UsernameAndPasswordInvalidExceptio
 import com.atguigu.gulimall.commons.exception.UsernameExistException;
 import com.atguigu.gulimall.commons.utils.GuliJwtUtils;
 import com.atguigu.gulimall.ums.vo.MemberLoginVo;
+import com.atguigu.gulimall.ums.vo.MemberOnlineVo;
 import com.atguigu.gulimall.ums.vo.MemberRegisterVo;
 import com.atguigu.gulimall.ums.vo.MemberRespVo;
 import org.springframework.beans.BeanUtils;
@@ -118,9 +119,14 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
             if (encoder.matches(vo.getPassword(), entity.getPassword())) {
                 // 匹配到且，验证通过后
                 // 1.把用户的详细信息保存在redis中
-                // 为什么不使用jwt 令牌 ???
+                // 为什么不使用jwt 令牌 ??? 如果存用户信息 找的时候会比较麻烦
                 String token = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
 
+                /**
+                 * 将用户完整信息缓存到redis中,前缀为固定字符串+token
+                 * 默认保存时间为60分钟
+                 * 如果过期了 需要重新登陆 重新分配
+                 */
                 redisTemplate.opsForValue().set(Constant.LOGIN_USER_PREFIX + token, JSON.toJSONString(entity), Constant.LOGIN_USER_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
                 Map<String, Object> payload = new HashMap<>();
@@ -142,6 +148,11 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
             throw new UsernameAndPasswordInvalidException();
         }
 
+    }
+
+    @Override
+    public MemberOnlineVo checkIsOnline(Long userId) {
+        return null;
     }
 
 }

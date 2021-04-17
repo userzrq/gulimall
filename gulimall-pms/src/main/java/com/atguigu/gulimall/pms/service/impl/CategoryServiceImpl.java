@@ -62,7 +62,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     /**
-     * 利用mybatis层的递归查询某id下的子分类及子子分类，并增加缓存
+     * 利用mybatis层的递归查询某id下的子分类及子子分类，并增加缓存，不设置过期时间则使用默认的过期时间和时间单位
+     * 除非手动删除使缓存失效
      * 利用AOP做缓存切面
      *
      * @param id

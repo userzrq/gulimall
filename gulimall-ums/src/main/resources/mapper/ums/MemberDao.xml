@@ -3,7 +3,7 @@
 
 <mapper namespace="com.atguigu.gulimall.ums.dao.MemberDao">
 
-	<!-- 可根据自己的需求，是否要使用 -->
+    <!-- 可根据自己的需求，是否要使用 -->
     <resultMap type="com.atguigu.gulimall.ums.entity.MemberEntity" id="memberMap">
         <result property="id" column="id"/>
         <result property="levelId" column="level_id"/>
@@ -24,6 +24,15 @@
         <result property="status" column="status"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
+    <update id="incrScore">
+        UPDATE `ums_member`
+        SET
+        `growth` = `growth` + #{growth},
+        `integration` = `integration` + #{integration}
+        WHERE
+        `id` = #{id}
+
+    </update>
 
 
 </mapper>

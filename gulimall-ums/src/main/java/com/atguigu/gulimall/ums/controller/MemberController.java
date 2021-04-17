@@ -7,6 +7,7 @@ import com.atguigu.gulimall.commons.bean.PageVo;
 import com.atguigu.gulimall.commons.bean.QueryCondition;
 import com.atguigu.gulimall.commons.bean.Resp;
 import com.atguigu.gulimall.ums.vo.MemberLoginVo;
+import com.atguigu.gulimall.ums.vo.MemberOnlineVo;
 import com.atguigu.gulimall.ums.vo.MemberRegisterVo;
 import com.atguigu.gulimall.ums.vo.MemberRespVo;
 import io.swagger.annotations.Api;
@@ -34,12 +35,32 @@ public class MemberController {
     private MemberService memberService;
 
 
+    /**
+     * 用户登陆接口
+     *
+     * @param vo
+     * @return
+     */
     @PostMapping("/login")
     public Resp<Object> login(MemberLoginVo vo) {
-
         MemberRespVo respVo = memberService.login(vo);
 
         return Resp.ok(respVo);
+    }
+
+    /**
+     * 假设jwt设有过期时间，过期后在全局过滤器处验证失败
+     *
+     * 检查用户是否在线（检查用户可用性）
+     *
+     * @param userId
+     * @return
+     */
+    @GetMapping("/checkUserAvailability")
+    public Resp<MemberOnlineVo> isOnline(@RequestParam Long userId) {
+        MemberOnlineVo onlineVo = memberService.checkIsOnline(userId);
+
+        return Resp.ok(onlineVo);
     }
 
 

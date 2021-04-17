@@ -1,6 +1,8 @@
 package com.atguigu.gulimall.pms.config;
 
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,6 +20,27 @@ public class PmsMybatisConfig {
         //paginationInterceptor.setCountSqlParser(new JsqlParserCountOptimize(true));
 
         return paginationInterceptor;
+    }
+
+    /**
+     * 原生Spring的配置方式，从xml文件中读取数据库的配置
+     * Springboot配置的
+     *
+     * <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+     *      <property name="dataSource" ref="dataSource" />
+     * </bean>
+     *
+     * @return
+     * @throws Exception
+     */
+    @Bean
+    public SqlSessionFactory sqlSessionFactory() throws Exception {
+        // 通过工厂bean对象来创建 SqlSessionFactory
+        SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
+        // factoryBean.setDataSource();
+
+        // SqlSessionFactory需要一个数据源
+        return factoryBean.getObject();
     }
 
 

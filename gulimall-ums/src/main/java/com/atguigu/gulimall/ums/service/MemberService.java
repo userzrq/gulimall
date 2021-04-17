@@ -4,6 +4,7 @@ import com.atguigu.gulimall.commons.exception.EmailExistException;
 import com.atguigu.gulimall.commons.exception.PhoneExistException;
 import com.atguigu.gulimall.commons.exception.UsernameExistException;
 import com.atguigu.gulimall.ums.vo.MemberLoginVo;
+import com.atguigu.gulimall.ums.vo.MemberOnlineVo;
 import com.atguigu.gulimall.ums.vo.MemberRegisterVo;
 import com.atguigu.gulimall.ums.vo.MemberRespVo;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -42,5 +43,14 @@ public interface MemberService extends IService<MemberEntity> {
     void registerUser(MemberRegisterVo vo) throws UsernameExistException, PhoneExistException, EmailExistException;
 
     MemberRespVo login(MemberLoginVo vo);
+
+
+    /**
+     * 检查用户是否在线
+     *
+     * @param userId
+     * @return
+     */
+    MemberOnlineVo checkIsOnline(Long userId);
 }
 

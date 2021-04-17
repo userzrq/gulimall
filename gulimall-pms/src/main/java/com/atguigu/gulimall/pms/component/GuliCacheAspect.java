@@ -10,6 +10,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,7 @@ public class GuliCacheAspect {
 
     /**
      * 环绕通知：方法执行前，结束后，出现异常，正常返回都能通知
+     * 环绕通知会提供方法切入点 jointPoint 可以获取方法签名/直接执行方法等等....
      *
      * @param joinPoint
      * @return
@@ -49,11 +51,10 @@ public class GuliCacheAspect {
         String prefix = "";
         try {
             log.info("缓存切面介入工作...前置通知");
-            //获取目标方法的所有参数值
+            //获取目标方法签名的所有参数值
             Object[] args = joinPoint.getArgs();
 
-            // 拿到注解的值
-            // 方法一
+            // 方法一 通过方法签名拿到注解的值
             MethodSignature signature = (MethodSignature) joinPoint.getSignature();
             GuliCache guliCache = signature.getMethod().getAnnotation(GuliCache.class);
 
@@ -87,7 +88,7 @@ public class GuliCacheAspect {
                 return cache;
             } else {
                 lock.lock();
-                //防止解锁后再去操作数据库，再检查一次，做到双检查
+                //防止之后进锁的线程在缓存中已有的情况下再去操作一次数据库，做到双检查
                 cache = getFromCache(signature, prefix);
                 if (cache == null) {
                     log.info("缓存没命中....查询数据库");
@@ -114,10 +115,8 @@ public class GuliCacheAspect {
             }
 
         }
-
         return null;
     }
-
 
     private Object getFromCache(Signature signature, String prefix) {
         String s = redisTemplate.opsForValue().get(prefix);
@@ -125,7 +124,7 @@ public class GuliCacheAspect {
             log.info("缓存命中...");
             // 当缓存中有值时，目标方法不用执行
             // 返回目标方法本该返回的对象类型
-            Class returnType = ((MethodSignature) signature).getReturnType();   // 获取返回值类型,用JSON转化为目标对象类型
+            Class returnType = ((MethodSignature) signature).getReturnType();
             return JSON.parseObject(s, returnType);
         }
         return null;
