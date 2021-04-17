@@ -1,6 +1,7 @@
 package com.atguigu.gulimall.wms.service;
 
 import com.atguigu.gulimall.wms.vo.LockStockVo;
+import com.atguigu.gulimall.wms.vo.SkuLock;
 import com.atguigu.gulimall.wms.vo.SkuLockVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.atguigu.gulimall.wms.entity.WareSkuEntity;
@@ -31,5 +32,13 @@ public interface WareSkuService extends IService<WareSkuEntity> {
      * @throws InterruptedException
      */
     LockStockVo lockAndCheckStock(List<SkuLockVo> skuIds);
+
+    /**
+     * 解锁库存
+     *
+     * @param skuLocks
+     * @param orderSn
+     */
+    void unlockSkuStock(List<SkuLock> skuLocks, String orderSn);
 }
 

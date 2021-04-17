@@ -18,6 +18,11 @@
         where `sku_id` = #{sku.skuId} and `ware_id` = #{wareId}
     </update>
 
+    <update id="unLockSku">
+        update `wms_ware_sku` set `stock_locked`=`stock_locked` - #{sku.locked}
+        where `sku_id` = #{sku.skuId} and `ware_id` = #{sku.wareId}
+    </update>
+
     <!--  Long ckeckStock(SkuLockVo skuLockVo);  -->
     <select id="ckeckStock" resultType="java.lang.Long">
         select sum(`stock`-`stock_locked`) from `wms_ware_sku`

@@ -1,6 +1,7 @@
 package com.atguigu.gulimall.wms.dao;
 
 import com.atguigu.gulimall.wms.entity.WareSkuEntity;
+import com.atguigu.gulimall.wms.vo.SkuLock;
 import com.atguigu.gulimall.wms.vo.SkuLockVo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
@@ -45,4 +46,11 @@ public interface WareSkuDao extends BaseMapper<WareSkuEntity> {
      */
     long lockSku(@Param("sku") SkuLockVo skuLockVo,
                  @Param("wareId") Long id);
+
+    /**
+     * 解锁库存
+     *
+     * @param skuLock
+     */
+    void unLockSku(@Param("sku") SkuLock skuLock);
 }
