@@ -21,15 +21,13 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 全局令牌认证过滤器
+ * 全局 令牌认证过滤器
  * <p>
- * 系统JWT认证过滤器，只有token校验通过才能请求接口
+ * 系统JWT认证过滤器，只有token校验通过才能请求接口，并对用户登陆信息自动续期
  * <p>
  * 全局过滤器或者 gateway filterfactory 在容器中添加都是有顺序的
  * 如果过滤器顺序太低，过滤器是不会被执行的
  * 数字越小，优先级越高
- * <p>
- * redis的自动续期
  */
 @Slf4j
 @Component("guliAuthenticationFilter")
@@ -40,7 +38,7 @@ public class GuliAuthenticationFilter implements GlobalFilter {
     private StringRedisTemplate redisTemplate;
 
     /**
-     * Webflux编程方式，流式编程
+     * Spring 5 Webflux编程方式，流式编程
      *
      * @param exchange
      * @param chain
@@ -72,7 +70,7 @@ public class GuliAuthenticationFilter implements GlobalFilter {
                 Mono<Void> filter = chain.filter(exchange);
                 return filter;
             } catch (Exception e) {
-                // 检查失败
+                // Authentication 请求头不正确或者过期导致校验失败
                 ServerHttpResponse response = exchange.getResponse();
                 // 设置响应403状态码，
                 response.setStatusCode(HttpStatus.FORBIDDEN);
@@ -80,7 +78,6 @@ public class GuliAuthenticationFilter implements GlobalFilter {
                 Mono<Void> voidMono = response.setComplete();
                 return voidMono;
             }
-
         }
 
         log.info("网关全局令牌验证结束......");

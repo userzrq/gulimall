@@ -1,6 +1,9 @@
 server:
   port: 88
 
+# fallback是
+hystrix.command.fallbackcmd.execution.isolation.thread.timeoutInMilliseconds: 5000
+
 spring:
   cloud:
     gateway:
@@ -12,6 +15,22 @@ spring:
           filters:
             - RewritePath=/api/(?<segment>.*),/$\{segment}
             # api/index/** 这样的请求路径 会被重写为{segment}，即 gulimall-pms/**
+            - name: Hystrix
+              args:
+                name: fallbackcmd
+                fallbackuri: forward:/incaseoffailureusethis
+#     除了将fallbackUri用于网关应用程序中的内部控制器或处理程序。
+#     也可以重新路由请求到一个控制器或处理程序在一个外部应用程序
+#            - name: Hystrix
+#              args:
+#                name: fetchIngredients
+#                fallbackUri: forward:/fallback
+#     配置新的路由规则，路由到网关之外的应用程序
+#        - id: ingredients-fallback
+#          uri: http://localhost:9994
+#          predicates:
+#            - Path=/fallback
+
         - id: gulimall_oms_route
           uri: lb://gulimall-oms
           predicates:
