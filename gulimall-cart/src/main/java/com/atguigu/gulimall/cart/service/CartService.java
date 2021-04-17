@@ -14,7 +14,7 @@ public interface CartService {
     /**
      * 获取购物车中的数据
      *
-     * @param userKey
+     * @param userKey 用户临时令牌
      * @param authentication
      * @return
      * @throws ExecutionException

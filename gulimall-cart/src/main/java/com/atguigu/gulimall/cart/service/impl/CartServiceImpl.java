@@ -85,7 +85,7 @@ public class CartServiceImpl implements CartService {
         List<CartItemVo> cartItems = getCartItems(redisKey);
         cartVo.setItems(cartItems);
 
-        // 会触发线程去修改购物项的实时价格，会慢慢修改，但不会在本次及时返回
+        // ****会触发线程去修改购物项的实时价格，会慢慢修改，但不会在本次及时返回,真正下单时还会再查一次，不怎么要紧****
         CompletableFuture.runAsync(() -> {
             cartItems.forEach((item) -> {
                 // 启动线程在后台更新价格
@@ -95,19 +95,19 @@ public class CartServiceImpl implements CartService {
                 String cache = redisTemplate.opsForValue().get(Constant.CACHE_SKU_INFO + item.getSkuId());
 
                 if (StringUtils.isEmpty(cache)) {
-
+                    // 其实可以直接调feign去查，SkuInfoService.getSkuVo方法 如果缓存中没有就会去数据库中查
                 } else {
                     // 是从数据库缓存来的新数据
                     SkuInfoVo itemVo = JSON.parseObject(cache, SkuInfoVo.class);
                     // 根据缓存的商品信息改掉购物车中的信息
                     // item只是接口的返回内容，不是购物车对象
-                    // item.setPrice(itemVo.getPrice());
-                    RMap<String, String> rMap = redisson.getMap(Constant.CART_PREFIX + cartKey.getKey());
+                    // 根据登录状态选择购物车并对同一个SkuId的value值做覆盖操作
+                    RMap<String, String> rMap = redisson.getMap(redisKey);
                     String s = rMap.get(item.getSkuId().toString());
                     CartItemVo cartItemVo = JSON.parseObject(s, CartItemVo.class);
                     cartItemVo.setPrice(itemVo.getPrice());
 
-                    // 更新rMap中的hash
+                    // 更新rMap中的hash（覆盖操作）
                     rMap.put(item.getSkuId().toString(), JSON.toJSONString(cartItemVo));
                 }
             });
@@ -171,11 +171,14 @@ public class CartServiceImpl implements CartService {
         CartKey key = getKey(userKey, authorization);
         RMap<String, String> cart;
         String cartkey = key.getKey();
+        String redisKey;
 
         if (key.isLogin()) {
-            cart = redisson.getMap(Constant.CART_PREFIX + cartkey);
+            redisKey = Constant.CART_PREFIX + cartkey;
+            cart = redisson.getMap(redisKey);
         } else {
-            cart = redisson.getMap(Constant.TEMP_CART_PREFIX + cartkey);
+            redisKey = Constant.TEMP_CART_PREFIX + cartkey;
+            cart = redisson.getMap(redisKey);
         }
 
         String itemJson = cart.get(skuId.toString());
@@ -185,7 +188,7 @@ public class CartServiceImpl implements CartService {
         cart.put(skuId.toString(), JSON.toJSONString(itemVo));
 
         //获取购物车最新的所有购物项
-        List<CartItemVo> cartItems = getCartItems(cartkey);
+        List<CartItemVo> cartItems = getCartItems(redisKey);
         CartVo cartVo = new CartVo();
         cartVo.setItems(cartItems);
 
@@ -196,11 +199,14 @@ public class CartServiceImpl implements CartService {
     public CartVo checkCart(Long[] skuId, Integer status, String userKey, String authorization) {
         CartKey key = getKey(userKey, authorization);
         String cartKey = key.getKey();
+        String redisKey;
         RMap<String, String> cart;
         if (key.isLogin()) {
-            cart = redisson.getMap(Constant.CART_PREFIX + cartKey);
+            redisKey = Constant.CART_PREFIX + cartKey;
+            cart = redisson.getMap(redisKey);
         } else {
-            cart = redisson.getMap(Constant.TEMP_CART_PREFIX + cartKey);
+            redisKey = Constant.TEMP_CART_PREFIX + cartKey;
+            cart = redisson.getMap(redisKey);
         }
         if (skuId != null && skuId.length > 0) {
             // 遍历商品Id，因为在redis中存放的结构是以商品Id为key的
@@ -214,7 +220,7 @@ public class CartServiceImpl implements CartService {
         }
 
         //获取到这个购物车的所有记录
-        List<CartItemVo> cartItems = getCartItems(cartKey);
+        List<CartItemVo> cartItems = getCartItems(redisKey);
 
         CartVo cartVo = new CartVo();
         cartVo.setItems(cartItems);
@@ -225,7 +231,7 @@ public class CartServiceImpl implements CartService {
     @Override
     public CartVo getCartForOrder(Long userId) {
         // 登陆情况下的购物车用的就是：cart:user:userId 作为key
-        // 购物车结构<String<String,String>> 双层hash结构，从左到右依次为：userId -> SkuId -> SkuId对应的商品详情的json
+        // 购物车结构 Map<String, Map<String,String>> 双层hash结构，从左到右依次为：userId -> SkuId -> SkuId对应的商品详情的json
         RMap<String, String> cart = redisson.getMap(Constant.CART_PREFIX + userId);
 
         List<CartItemVo> cartItemVos = new ArrayList<>();
@@ -235,7 +241,11 @@ public class CartServiceImpl implements CartService {
             for (String innerValue : values) {
                 if (StringUtils.isEmpty(innerValue)) {
                     CartItemVo itemVo = JSON.parseObject(innerValue, CartItemVo.class);
+
                     if (itemVo.isCheck()) {
+                        // 远程查缓存的最新的sku价格
+                        SkuInfoVo skuInfoVo = skuFeignService.getSKuInfoForCart(itemVo.getSkuId()).getData();
+                        itemVo.setPrice(skuInfoVo.getPrice());
                         cartItemVos.add(itemVo);
                     }
                 }
@@ -289,7 +299,7 @@ public class CartServiceImpl implements CartService {
                 cartKey.setMerge(true);
             }
         } else {
-            // 没登录的情况
+            // 没登录的情况下
             if (!StringUtils.isEmpty(userKey)) {
                 key = userKey;
                 cartKey.setKey(key);
@@ -337,7 +347,7 @@ public class CartServiceImpl implements CartService {
      * @param skuId
      * @param num
      * @param cartKey redis中存放的最终的购物车的key值
-     * @return
+     * @return++
      */
     private CartItemVo addCartItemVo(Long skuId, Integer num, String cartKey) throws ExecutionException, InterruptedException {
         // 方法要返回的对象：向购物车中新增的商品
@@ -354,12 +364,12 @@ public class CartServiceImpl implements CartService {
                 CartItemVo itemVo = JSON.parseObject(cartItemVoJson, CartItemVo.class);
                 itemVo.setNum(itemVo.getNum() + num);
                 /**
-                 * 当购物车中的购物项的价格 与 商品的实时价格不同时，远程查询其实时价格
+                 * 每次添加商品时，都远程查询其实时价格，覆盖之前的价格
                  */
                 Resp<SkuInfoVo> sKuInfoForCart = skuFeignService.getSKuInfoForCart(skuId);
                 BigDecimal price = sKuInfoForCart.getData().getPrice();
-                // 将实时价格重新覆盖
                 itemVo.setPrice(price);
+                // 将redis中第二层Map的数据进行覆盖修改
                 loginMap.put(itemVo.getSkuId().toString(), JSON.toJSONString(itemVo));
 
                 return itemVo;

@@ -44,6 +44,12 @@ public class CartController {
     }
 
 
+    /**
+     * 下单时远程调用的方法 用户必须先登录再下单
+     *
+     * @param request
+     * @return
+     */
     @ApiOperation("返回购物车中所有 选中的 商品信息以及总价格，优惠等信息")
     @GetMapping("/getItemsForOrder")
     public Resp<CartVo> getCartCheckItemsAndStatics(HttpServletRequest request) {
@@ -88,7 +94,7 @@ public class CartController {
      * <p>
      * 某个请求参数有多个值封装数组：
      * 传：skuId=1&skuId=2&skuId=3&skuId=4#
-     * 封：@RequestParam("skuId") Long[] skuId,
+     * 请求参数中封装：@RequestParam("skuId") Long[] skuId,
      * <p>
      * 选中不选中会影响总价
      */
